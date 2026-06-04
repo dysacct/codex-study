@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go Context 知识点教学 - 从概念到生产实践</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel-2: #1f2630;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #9da7b3;
+      --accent: #58a6ff;
+      --accent-2: #7ee787;
+      --warn: #f2cc60;
+      --danger: #ff7b72;
+      --code-bg: #0b1017;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.35);
+      --radius: 8px;
+      --sidebar: 310px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(88, 166, 255, 0.16), transparent 420px),
+        linear-gradient(180deg, #0d1117 0%, #10161f 100%);
+      line-height: 1.72;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.92em;
+    }
+
+    .progress {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 4px;
+      z-index: 30;
+      background: transparent;
+    }
+
+    .progress span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    .mobile-bar {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 17, 23, 0.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 22px 16px;
+      border-right: 1px solid var(--border);
+      background: rgba(13, 17, 23, 0.86);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      padding: 4px 4px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 1.02rem;
+      line-height: 1.3;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .search {
+      margin: 18px 0 14px;
+    }
+
+    .search input {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      color: var(--text);
+      background: var(--panel);
+      font: inherit;
+    }
+
+    .search input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.16);
+    }
+
+    nav h2 {
+      margin: 18px 4px 8px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    nav a:hover,
+    nav a.active {
+      color: var(--accent);
+      background: var(--panel);
+      text-decoration: none;
+    }
+
+    button {
+      min-height: 38px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--panel);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .sidebar-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 12px 0 2px;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1140px;
+      padding: 42px clamp(18px, 5vw, 64px) 76px;
+    }
+
+    .hero {
+      padding-bottom: 30px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent-2);
+      background: var(--panel);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 18px 0 14px;
+      font-size: clamp(2.1rem, 4vw, 4.4rem);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 860px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .meta-grid,
+    .cards,
+    .two-col {
+      display: grid;
+      gap: 14px;
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 22px;
+    }
+
+    .stat,
+    .card,
+    .callout,
+    .exercise,
+    .toc-box,
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 16px;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--accent);
+      font-size: 1.3rem;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    section {
+      margin: 44px 0;
+      scroll-margin-top: 20px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.45rem, 2vw, 2.12rem);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 1.15rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.24rem;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .two-col {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .card,
+    .callout,
+    .exercise,
+    .toc-box {
+      padding: 18px;
+    }
+
+    .card h3,
+    .callout h3,
+    .exercise h3 {
+      margin-top: 0;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: linear-gradient(90deg, rgba(88, 166, 255, 0.12), var(--panel));
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+      background: linear-gradient(90deg, rgba(242, 204, 96, 0.12), var(--panel));
+    }
+
+    .danger {
+      border-left-color: var(--danger);
+      background: linear-gradient(90deg, rgba(255, 123, 114, 0.12), var(--panel));
+    }
+
+    details {
+      margin: 12px 0;
+      overflow: hidden;
+      box-shadow: none;
+    }
+
+    summary {
+      padding: 14px 16px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    details > div {
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      margin: 14px 0;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--accent-2);
+      background: var(--panel-2);
+    }
+
+    .code-shell {
+      margin: 16px 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--code-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .code-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .copy-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      color: var(--text);
+      background: #21262d;
+      font-size: 0.78rem;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    pre code {
+      display: block;
+      min-width: max-content;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.58;
+      white-space: pre;
+    }
+
+    .tok-comment { color: #8b949e; }
+    .tok-keyword { color: #ff7b72; font-weight: 700; }
+    .tok-string { color: #a5d6ff; }
+    .tok-number { color: #79c0ff; }
+    .tok-function { color: #d2a8ff; }
+    .tok-type { color: #ffa657; }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .badge {
+      padding: 4px 9px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--panel);
+      font-size: 0.82rem;
+    }
+
+    .hidden-by-search {
+      display: none;
+    }
+
+    .no-results {
+      display: none;
+      padding: 14px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: var(--panel);
+    }
+
+    footer {
+      margin-top: 52px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 980px) {
+      .mobile-bar {
+        display: flex;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: fixed;
+        z-index: 28;
+        inset: 0 auto 0 0;
+        width: min(86vw, 326px);
+        transform: translateX(-105%);
+        transition: transform 180ms ease;
+      }
+
+      body.nav-open aside {
+        transform: translateX(0);
+      }
+
+      main {
+        padding-top: 30px;
+      }
+
+      .meta-grid,
+      .cards,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      h1 {
+        font-size: 2.2rem;
+      }
+
+      main {
+        padding-inline: 14px;
+      }
+
+      .card,
+      .callout,
+      .exercise,
+      .toc-box {
+        padding: 14px;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <div class="mobile-bar">
+    <button id="menuBtn" aria-label="打开目录">目录</button>
+    <strong>Go context</strong>
+    <button id="expandBtnMobile" aria-label="展开所有章节">展开</button>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <strong>Go Context 知识点教学</strong>
+        <span>Concept → Principle → Code → Real Project → Interview</span>
+      </div>
+
+      <label class="search">
+        <input id="searchInput" type="search" placeholder="搜索：cancel、timeout、value..." autocomplete="off">
+      </label>
+
+      <div class="sidebar-actions">
+        <button id="expandBtn">展开全部</button>
+        <button id="topBtn">回到顶部</button>
+      </div>
+
+      <nav aria-label="课程目录">
+        <h2>目录</h2>
+        <a href="#intro">课程介绍</a>
+        <a href="#mental-model">核心心智模型</a>
+        <a href="#interface">Context 接口</a>
+        <a href="#background-todo">Background 与 TODO</a>
+        <a href="#cancel">WithCancel</a>
+        <a href="#timeout">WithTimeout / Deadline</a>
+        <a href="#value">WithValue</a>
+        <a href="#cause">Cancel Cause</a>
+        <a href="#afterfunc">AfterFunc</a>
+        <a href="#withoutcancel">WithoutCancel</a>
+        <a href="#http-db">HTTP 与数据库实战</a>
+        <a href="#middleware">中间件与链路追踪</a>
+        <a href="#mistakes">常见错误</a>
+        <a href="#practice">练习</a>
+        <a href="#interview">面试题</a>
+        <a href="#summary">总结</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article id="content">
+        <header class="hero" id="intro">
+          <span class="tag">Go Master Skill · 默认深色主题</span>
+          <h1>Go context：从入门知识点到生产级用法</h1>
+          <p class="lead">`context` 是 Go 后端工程里贯穿请求生命周期的核心工具。它不负责“杀死 goroutine”，而是负责传递取消信号、截止时间和少量请求级元数据。学会它，你才能写出不会无故阻塞、不会泄漏、能被上游超时控制的服务代码。</p>
+          <div class="meta-grid">
+            <div class="stat"><b>4</b><span>核心方法：Deadline / Done / Err / Value</span></div>
+            <div class="stat"><b>8</b><span>常用构造函数与高级函数</span></div>
+            <div class="stat"><b>12+</b><span>可运行 Go 示例</span></div>
+            <div class="stat"><b>5</b><span>生产实践场景</span></div>
+          </div>
+        </header>
+
+        <section id="mental-model" data-search>
+          <h2>核心心智模型</h2>
+          <p>先记住一句话：<strong>context 是请求生命周期的控制信号树。</strong>父 context 被取消，所有派生出来的子 context 都会收到取消信号。</p>
+
+          <div class="cards">
+            <div class="card">
+              <h3>What</h3>
+              <p><code>context.Context</code> 是一个接口，用来跨 API 边界传递取消信号、截止时间和请求级值。</p>
+            </div>
+            <div class="card">
+              <h3>Why</h3>
+              <p>后端请求经常跨 goroutine、HTTP、RPC、数据库。上游取消或超时后，下游工作应尽快停止。</p>
+            </div>
+            <div class="card">
+              <h3>Problem</h3>
+              <p>没有 context 时，慢查询、阻塞网络调用、后台 goroutine 可能继续跑，造成资源泄漏和雪崩。</p>
+            </div>
+          </div>
+
+          <div class="toc-box">
+            <h3>学习路线</h3>
+            <ol>
+              <li>先理解接口的四个方法。</li>
+              <li>再掌握取消、超时、deadline 的传播。</li>
+              <li>然后学习 Value 的边界，不把它当参数袋。</li>
+              <li>最后进入 HTTP、数据库、中间件、面试题和生产排错。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="interface" data-search>
+          <h2>Context 接口</h2>
+          <p>Go 官方标准库中，<code>Context</code> 的本体很小，真正的复杂性来自它如何在函数调用链中被持续传递。</p>
+
+          <details open>
+            <summary>What / Principle / Common Mistakes</summary>
+            <div>
+              <table>
+                <thead>
+                  <tr><th>方法</th><th>含义</th><th>生产用法</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>Deadline()</code></td><td>返回截止时间和是否存在截止时间</td><td>判断请求剩余时间，避免启动注定超时的工作</td></tr>
+                  <tr><td><code>Done()</code></td><td>返回一个只读 channel，取消时关闭</td><td>在 <code>select</code> 中监听取消</td></tr>
+                  <tr><td><code>Err()</code></td><td>返回取消原因：<code>Canceled</code> 或 <code>DeadlineExceeded</code></td><td>区分用户取消和系统超时</td></tr>
+                  <tr><td><code>Value(key)</code></td><td>读取请求级键值</td><td>传 trace id、request id、认证主体等</td></tr>
+                </tbody>
+              </table>
+              <p>常见错误：只创建 context，却不在耗时函数内部监听 <code>Done()</code>。context 不会魔法般终止业务逻辑，代码必须主动检查。</p>
+            </div>
+          </details>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+func main() {
+	// 创建一个 50ms 后自动取消的 context。
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel() // 释放 timer 资源，是生产代码必备习惯。
+
+	// Done 返回一个 channel，取消或超时时会被关闭。
+	select {
+	case <-ctx.Done():
+		fmt.Println("stopped:", ctx.Err())
+	case <-time.After(200 * time.Millisecond):
+		fmt.Println("work completed")
+	}
+}</code></pre>
+          </div>
+        </section>
+
+        <section id="background-todo" data-search>
+          <h2>Background 与 TODO</h2>
+          <p><code>context.Background()</code> 和 <code>context.TODO()</code> 都返回不可取消、无截止时间、无值的根 context，但语义不同。</p>
+
+          <div class="two-col">
+            <div class="card">
+              <h3>Background</h3>
+              <p>用于 main 函数、初始化、测试、顶层请求入口。它表示“这里就是上下文树的根”。</p>
+            </div>
+            <div class="card">
+              <h3>TODO</h3>
+              <p>用于暂时不知道应该传什么 context 的地方。它是一种标记：未来应该补上真正的调用链 context。</p>
+            </div>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+)
+
+func loadConfig(ctx context.Context) error {
+	// 这里暂时没有耗时操作，只演示函数签名的规范。
+	fmt.Println("config loaded, ctx is nil?", ctx == nil)
+	return nil
+}
+
+func main() {
+	// 顶层入口使用 Background。
+	_ = loadConfig(context.Background())
+
+	// 迁移旧代码时可以临时用 TODO，但不要长期保留。
+	_ = loadConfig(context.TODO())
+}</code></pre>
+          </div>
+        </section>
+
+        <section id="cancel" data-search>
+          <h2>WithCancel：主动取消</h2>
+          <p><code>WithCancel</code> 返回一个子 context 和一个 <code>cancel</code> 函数。调用 <code>cancel()</code> 后，子 context 和它的所有后代都会收到取消信号。</p>
+
+          <details open>
+            <summary>What / Why / Problem / Principle</summary>
+            <div>
+              <p><strong>What：</strong>创建一个可以被手动取消的 context。</p>
+              <p><strong>Why：</strong>调用方提前拿到结果、用户断开连接、任务失败时，要通知下游停止工作。</p>
+              <p><strong>Problem：</strong>如果 worker 只管循环发送数据，消费者退出后 worker 会阻塞并泄漏。</p>
+              <p><strong>Principle：</strong><code>cancel()</code> 会关闭 <code>Done()</code> channel，监听该 channel 的 goroutine 可以自然退出。</p>
+            </div>
+          </details>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+)
+
+func numbers(ctx context.Context) <-chan int {
+	out := make(chan int)
+	go func() {
+		defer close(out) // goroutine 退出时关闭结果 channel。
+		for i := 1; ; i++ {
+			select {
+			case <-ctx.Done():
+				return // 收到取消信号，避免 goroutine 泄漏。
+			case out <- i:
+			}
+		}
+	}()
+	return out
+}
+
+func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for n := range numbers(ctx) {
+		fmt.Println(n)
+		if n == 3 {
+			cancel() // 主动通知生产者停止。
+		}
+	}
+}</code></pre>
+          </div>
+
+          <div class="callout warning">
+            <h3>生产提醒</h3>
+            <p>只要你调用了 <code>WithCancel</code>、<code>WithTimeout</code> 或 <code>WithDeadline</code>，通常都应该 <code>defer cancel()</code>。这不仅是取消任务，也会释放父 context 对子 context 的引用以及相关 timer。</p>
+          </div>
+        </section>
+
+        <section id="timeout" data-search>
+          <h2>WithTimeout / WithDeadline：时间边界</h2>
+          <p>超时是服务稳定性的边界。没有超时的服务调用，在故障时会把 goroutine、连接池和请求队列慢慢拖满。</p>
+
+          <div class="badge-row">
+            <span class="badge">WithTimeout：相对时间</span>
+            <span class="badge">WithDeadline：绝对时间点</span>
+            <span class="badge">Err：DeadlineExceeded</span>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+func slowQuery(ctx context.Context) error {
+	// 模拟一个可能很慢的外部调用。
+	select {
+	case <-time.After(200 * time.Millisecond):
+		fmt.Println("query success")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err() // 把超时原因返回给调用方。
+	}
+}
+
+func main() {
+	// 给下游调用 80ms 的预算。
+	ctx, cancel := context.WithTimeout(context.Background(), 80*time.Millisecond)
+	defer cancel()
+
+	if err := slowQuery(ctx); err != nil {
+		fmt.Println("query failed:", err)
+	}
+}</code></pre>
+          </div>
+
+          <details>
+            <summary>Real World Usage</summary>
+            <div>
+              <ul>
+                <li>HTTP handler 从 <code>r.Context()</code> 继承客户端连接生命周期。</li>
+                <li>调用数据库时传入 <code>QueryContext</code>，让慢查询能被取消。</li>
+                <li>调用第三方 API 时给每次请求设置独立超时。</li>
+                <li>批处理任务给每个子任务设置预算，避免单个任务拖垮整体。</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+
+        <section id="value" data-search>
+          <h2>WithValue：请求级值</h2>
+          <p><code>WithValue</code> 很有用，也很容易被滥用。它应该只保存跨 API 和进程边界的请求级元数据，例如 request id、trace id、认证用户，而不是普通函数参数。</p>
+
+          <div class="callout danger">
+            <h3>最重要的边界</h3>
+            <p>不要用 context 传业务参数，例如分页大小、商品 ID、开关配置。普通参数要写在函数签名里，让依赖显式可见。</p>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+)
+
+// 使用私有 key 类型，避免和其他包的 key 冲突。
+type requestIDKey struct{}
+
+func withRequestID(ctx context.Context, id string) context.Context {
+	// Value 适合保存请求级元数据。
+	return context.WithValue(ctx, requestIDKey{}, id)
+}
+
+func requestIDFrom(ctx context.Context) (string, bool) {
+	id, ok := ctx.Value(requestIDKey{}).(string)
+	return id, ok
+}
+
+func main() {
+	ctx := withRequestID(context.Background(), "req-20260604-001")
+	id, ok := requestIDFrom(ctx)
+	fmt.Println(id, ok)
+}</code></pre>
+          </div>
+
+          <table>
+            <thead>
+              <tr><th>适合放入 context</th><th>不适合放入 context</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>request id、trace id、span id</td><td>函数可直接接收的业务参数</td></tr>
+              <tr><td>认证主体、租户 id</td><td>可选参数、配置项、分页条件</td></tr>
+              <tr><td>日志字段、链路追踪字段</td><td>数据库连接、全局客户端、缓存对象</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="cause" data-search>
+          <h2>Cancel Cause：带原因的取消</h2>
+          <p>Go 1.20 引入了 <code>WithCancelCause</code> 和 <code>Cause</code>。它们解决的问题是：只看 <code>ctx.Err()</code> 通常只能知道“取消了”或“超时了”，却不知道业务上为什么取消。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+)
+
+var ErrQuotaExceeded = errors.New("quota exceeded")
+
+func main() {
+	ctx, cancel := context.WithCancelCause(context.Background())
+
+	// 业务层可以记录更具体的取消原因。
+	cancel(ErrQuotaExceeded)
+
+	<-ctx.Done()
+	fmt.Println("err:", ctx.Err())
+	fmt.Println("cause:", context.Cause(ctx))
+}</code></pre>
+          </div>
+
+          <details>
+            <summary>Interview Questions</summary>
+            <div>
+              <p><strong>问：</strong><code>ctx.Err()</code> 和 <code>context.Cause(ctx)</code> 有什么区别？</p>
+              <p><strong>答：</strong><code>Err()</code> 返回标准取消状态，通常是 <code>context.Canceled</code> 或 <code>context.DeadlineExceeded</code>。<code>Cause</code> 可以返回通过 <code>CancelCauseFunc</code> 设置的业务错误；如果没有设置 cause，通常退化为和 <code>Err()</code> 一样的结果。</p>
+            </div>
+          </details>
+        </section>
+
+        <section id="afterfunc" data-search>
+          <h2>AfterFunc：取消后的回调</h2>
+          <p><code>context.AfterFunc(ctx, f)</code> 会在 context 被取消后，用新的 goroutine 执行回调函数。它适合把“取消信号”桥接到一些不直接支持 context 的阻塞 API。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+
+	done := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		// context 取消后，这个函数会在独立 goroutine 中执行。
+		fmt.Println("cleanup after cancel:", ctx.Err())
+		close(done)
+	})
+	defer stop() // 如果 ctx 还没取消，可以停止关联。
+
+	<-done
+}</code></pre>
+          </div>
+
+          <div class="callout warning">
+            <h3>Common Mistakes</h3>
+            <p><code>stop()</code> 不会等待已经开始执行的回调结束。如果回调需要完成确认，要自己用 channel、WaitGroup 或其他同步方式协调。</p>
+          </div>
+        </section>
+
+        <section id="withoutcancel" data-search>
+          <h2>WithoutCancel：断开取消传播</h2>
+          <p><code>context.WithoutCancel(parent)</code> 创建一个继承 Value、但不受父 context 取消影响的 context。它适合请求结束后还要做短小、可控的后台清理，例如异步记录审计日志。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+)
+
+type traceKey struct{}
+
+func main() {
+	parent := context.WithValue(context.Background(), traceKey{}, "trace-001")
+	ctx, cancel := context.WithCancel(parent)
+	cancel()
+
+	// detached 仍能读取 Value，但不会因为 parent cancel 而 Done。
+	detached := context.WithoutCancel(ctx)
+	fmt.Println("trace:", detached.Value(traceKey{}))
+	fmt.Println("err:", detached.Err())
+}</code></pre>
+          </div>
+
+          <div class="callout danger">
+            <h3>生产边界</h3>
+            <p>不要用 <code>WithoutCancel</code> 绕过正常取消，让后台任务无限跑。真正的后台任务仍然应该有自己的超时、队列、重试和关闭机制。</p>
+          </div>
+        </section>
+
+        <section id="http-db" data-search>
+          <h2>HTTP 与数据库实战</h2>
+          <p>生产项目里，context 最常见的入口是 HTTP 请求。客户端断开连接、网关超时、handler 返回，都会通过 <code>r.Context()</code> 影响下游调用。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"time"
+
+	_ "github.com/lib/pq"
+)
+
+type User struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func userHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 从请求继承 context，再给数据库查询单独设置预算。
+		ctx, cancel := context.WithTimeout(r.Context(), 200*time.Millisecond)
+		defer cancel()
+
+		var u User
+		err := db.QueryRowContext(ctx,
+			"SELECT id, name FROM users WHERE id = $1",
+			1,
+		).Scan(&u.ID, &u.Name)
+		if err != nil {
+			// 如果是超时或客户端取消，可以按网关策略返回。
+			http.Error(w, err.Error(), http.StatusGatewayTimeout)
+			return
+		}
+
+		_ = json.NewEncoder(w).Encode(u)
+	}
+}
+
+func main() {
+	// 示例代码需要本地 PostgreSQL；重点是 QueryRowContext 的使用方式。
+	db, _ := sql.Open("postgres", "postgres://user:pass@localhost/db?sslmode=disable")
+	defer db.Close()
+	http.HandleFunc("/users/1", userHandler(db))
+	_ = http.ListenAndServe(":8080", nil)
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 运行 HTTP 示例前需要准备 Go module 和数据库驱动
+go mod init context-demo
+go get github.com/lib/pq
+go run main.go
+
+# 另一个终端请求接口
+curl http://localhost:8080/users/1</code></pre>
+          </div>
+        </section>
+
+        <section id="middleware" data-search>
+          <h2>中间件与链路追踪</h2>
+          <p>中间件适合把 request id、trace id、认证主体放进 context。下游日志、数据库访问、RPC 调用都能从同一个 context 中取到链路信息。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+)
+
+type requestIDKey struct{}
+
+func requestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 实际项目应使用 UUID 或网关传入的 request id。
+		rid := fmt.Sprintf("req-%d", time.Now().UnixNano())
+		ctx := context.WithValue(r.Context(), requestIDKey{}, rid)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	// handler 内部读取请求级元数据。
+	rid, _ := r.Context().Value(requestIDKey{}).(string)
+	_, _ = w.Write([]byte("request id: " + rid))
+}
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler)
+	_ = http.ListenAndServe(":8080", requestIDMiddleware(mux))
+}</code></pre>
+          </div>
+        </section>
+
+        <section id="mistakes" data-search>
+          <h2>常见错误</h2>
+          <div class="cards">
+            <div class="card">
+              <h3>把 context 存进 struct</h3>
+              <p>context 应该作为函数第一个参数显式传递，通常命名为 <code>ctx</code>。存进 struct 会模糊生命周期。</p>
+            </div>
+            <div class="card">
+              <h3>传 nil context</h3>
+              <p>不要传 <code>nil</code>。暂时不知道传什么时，使用 <code>context.TODO()</code>。</p>
+            </div>
+            <div class="card">
+              <h3>忘记 cancel</h3>
+              <p>派生了可取消 context 后忘记调用 cancel，可能造成 timer、子节点引用和 goroutine 生命周期问题。</p>
+            </div>
+            <div class="card">
+              <h3>用 Value 传参数</h3>
+              <p>Value 不是可选参数容器。业务参数应该显式出现在函数签名里。</p>
+            </div>
+            <div class="card">
+              <h3>只传不监听</h3>
+              <p>耗时循环、阻塞发送、外部调用要主动监听 <code>ctx.Done()</code> 或使用支持 context 的 API。</p>
+            </div>
+            <div class="card">
+              <h3>后台任务继承请求 context</h3>
+              <p>请求结束后，后台任务会跟着取消。需要异步任务时，要设计独立生命周期和超时。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="practice" data-search>
+          <h2>Practice：练习题</h2>
+          <div class="cards">
+            <div class="exercise">
+              <h3>1. 可取消生成器</h3>
+              <p>写一个不断生成订单号的 goroutine，消费者收到 5 个后取消 context，确认 goroutine 退出。</p>
+            </div>
+            <div class="exercise">
+              <h3>2. HTTP 超时</h3>
+              <p>写一个 handler，内部模拟 300ms 任务，然后给它 100ms context timeout，观察返回错误。</p>
+            </div>
+            <div class="exercise">
+              <h3>3. 数据库预算</h3>
+              <p>使用 <code>QueryContext</code> 包装一次查询，给查询独立 200ms 预算，并记录超时日志。</p>
+            </div>
+            <div class="exercise">
+              <h3>4. Trace ID 中间件</h3>
+              <p>写一个中间件生成 request id，放入 context，并在 handler 和日志函数里读取。</p>
+            </div>
+            <div class="exercise">
+              <h3>5. Cause 排错</h3>
+              <p>用 <code>WithCancelCause</code> 在业务校验失败时记录具体错误，并在上层打印 <code>context.Cause</code>。</p>
+            </div>
+            <div class="exercise">
+              <h3>6. AfterFunc 清理</h3>
+              <p>模拟一个阻塞资源，在 context 取消后执行清理函数，并用 channel 等待清理完成。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="interview" data-search>
+          <h2>Interview Questions：面试题</h2>
+
+          <details open>
+            <summary>1. context 的核心作用是什么？</summary>
+            <div>
+              <p>它用于在 API 边界和 goroutine 之间传递取消信号、截止时间和请求级值。核心价值是让上游能够控制下游工作生命周期，避免泄漏和无意义的继续执行。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>2. context 会杀死 goroutine 吗？</summary>
+            <div>
+              <p>不会。context 只是关闭 <code>Done()</code> channel 并暴露错误状态。goroutine 必须主动在 <code>select</code> 中监听 <code>ctx.Done()</code> 并返回。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>3. 为什么 context 通常作为第一个参数？</summary>
+            <div>
+              <p>这是 Go 生态的约定，能让函数生命周期依赖显式可见，也方便静态分析工具检查 context 是否正确传递。典型签名是 <code>func Do(ctx context.Context, arg Arg) error</code>。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>4. WithTimeout 后为什么还要 defer cancel？</summary>
+            <div>
+              <p>因为 cancel 不只表示“取消”，还会释放 context 相关资源，例如 timer 和父子引用。即使超时最终会发生，也应该在操作完成时尽早释放。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>5. WithValue 的最佳实践是什么？</summary>
+            <div>
+              <p>只传请求级元数据；key 使用自定义私有类型；读取时做类型断言检查；不要传业务参数、配置、数据库连接或全局客户端。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>6. 父 context 取消后，子 context 会怎样？</summary>
+            <div>
+              <p>所有从父 context 派生出来的子 context 都会被取消。取消是单向向下传播，子 context 取消不会反向取消父 context。</p>
+            </div>
+          </details>
+        </section>
+
+        <section id="summary" data-search>
+          <h2>总结</h2>
+          <p>Go context 的生产级理解可以压缩成五条：显式传递、及时 cancel、耗时操作监听 Done、Value 只放请求级元数据、超时是服务稳定性的边界。</p>
+          <div class="callout">
+            <h3>最终口诀</h3>
+            <p><strong>ctx 不是参数袋，不会杀 goroutine；它是取消信号树，是请求生命周期的预算表。</strong></p>
+          </div>
+          <h3>官方参考</h3>
+          <ul>
+            <li><a href="https://pkg.go.dev/context">Go 标准库 context 包文档</a></li>
+            <li><a href="https://go.dev/blog/context">Go Blog: Context</a></li>
+            <li><a href="https://go.dev/blog/context-and-structs">Go Blog: Contexts and structs</a></li>
+          </ul>
+        </section>
+      </article>
+
+      <p class="no-results" id="noResults">没有找到匹配章节。试试搜索 “timeout”、“Value”、“面试” 或 “数据库”。</p>
+
+      <footer>
+        <p>本教程为单文件离线 HTML。内容依据 Go 官方 context 文档与生产实践整理，适合从初级到中高级后端开发者系统复习。</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const progressBar = document.getElementById("progressBar");
+    const searchInput = document.getElementById("searchInput");
+    const noResults = document.getElementById("noResults");
+    const sections = [...document.querySelectorAll("[data-search]")];
+    const navLinks = [...document.querySelectorAll("nav a")];
+    const expandBtn = document.getElementById("expandBtn");
+    const expandBtnMobile = document.getElementById("expandBtnMobile");
+    const menuBtn = document.getElementById("menuBtn");
+    const topBtn = document.getElementById("topBtn");
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function highlight(code, lang) {
+      let html = escapeHtml(code);
+      html = html.replace(/("[^"\n]*"|`[^`]*`|'[^'\n]*')/g, '<span class="tok-string">$1</span>');
+      html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-number">$1</span>');
+
+      if (lang === "go") {
+        html = html.replace(/(\/\/.*)$/gm, '<span class="tok-comment">$1</span>');
+        html = html.replace(/\b(package|import|func|type|struct|interface|return|defer|go|select|case|for|if|else|var|const|range)\b/g, '<span class="tok-keyword">$1</span>');
+        html = html.replace(/\b(context|time|http|sql|json|fmt|errors)\b/g, '<span class="tok-type">$1</span>');
+        html = html.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\(/g, '<span class="tok-function">$1</span>(');
+      }
+
+      if (lang === "shell") {
+        html = html.replace(/^(#.*)$/gm, '<span class="tok-comment">$1</span>');
+        html = html.replace(/\b(go|curl|mod|init|get|run)\b/g, '<span class="tok-keyword">$1</span>');
+      }
+
+      return html;
+    }
+
+    function prepareCode() {
+      document.querySelectorAll("pre code").forEach((block) => {
+        const raw = block.textContent;
+        block.dataset.raw = raw;
+        block.innerHTML = highlight(raw, block.dataset.lang || "");
+      });
+
+      document.querySelectorAll(".copy-btn").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-shell").querySelector("code").dataset.raw;
+          await navigator.clipboard.writeText(code);
+          button.textContent = "已复制";
+          setTimeout(() => {
+            button.textContent = "复制";
+          }, 1200);
+        });
+      });
+    }
+
+    function updateProgress() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const percent = max <= 0 ? 0 : (window.scrollY / max) * 100;
+      progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
+
+    function updateActiveNav() {
+      let activeId = "intro";
+      const probe = window.scrollY + 120;
+      document.querySelectorAll("header[id], section[id]").forEach((node) => {
+        if (node.offsetTop <= probe) activeId = node.id;
+      });
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === `#${activeId}`);
+      });
+    }
+
+    function filterContent() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      sections.forEach((section) => {
+        const matched = !query || section.textContent.toLowerCase().includes(query);
+        section.classList.toggle("hidden-by-search", !matched);
+        if (matched) visibleCount += 1;
+      });
+
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+
+    function toggleDetails() {
+      const details = [...document.querySelectorAll("details")];
+      const shouldOpen = details.some((item) => !item.open);
+      details.forEach((item) => {
+        item.open = shouldOpen;
+      });
+      expandBtn.textContent = shouldOpen ? "收起全部" : "展开全部";
+      expandBtnMobile.textContent = shouldOpen ? "收起" : "展开";
+    }
+
+    prepareCode();
+    updateProgress();
+    updateActiveNav();
+
+    window.addEventListener("scroll", () => {
+      updateProgress();
+      updateActiveNav();
+    }, { passive: true });
+
+    searchInput.addEventListener("input", filterContent);
+    expandBtn.addEventListener("click", toggleDetails);
+    expandBtnMobile.addEventListener("click", toggleDetails);
+    menuBtn.addEventListener("click", () => document.body.classList.toggle("nav-open"));
+    topBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    navLinks.forEach((link) => {
+      link.addEventListener("click", () => document.body.classList.remove("nav-open"));
+    });
+  </script>
+</body>
+</html>

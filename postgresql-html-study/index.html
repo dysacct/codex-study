@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PostgreSQL 从新手到熟练 - 离线学习文档</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-2: #eef3f1;
+      --text: #17211c;
+      --muted: #66736d;
+      --line: #d9e0dc;
+      --accent: #24745d;
+      --accent-2: #c85f3d;
+      --accent-3: #315c99;
+      --code-bg: #111916;
+      --code-text: #dce9e2;
+      --shadow: 0 18px 45px rgba(24, 39, 32, 0.12);
+      --radius: 8px;
+      --sidebar: 300px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #101412;
+      --surface: #171d1a;
+      --surface-2: #202923;
+      --text: #edf4ef;
+      --muted: #a3aea8;
+      --line: #314039;
+      --accent: #62c99d;
+      --accent-2: #f09a75;
+      --accent-3: #8bb8ff;
+      --code-bg: #090d0b;
+      --code-text: #e4f0ea;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        linear-gradient(180deg, rgba(36, 116, 93, 0.08), transparent 360px),
+        var(--bg);
+      line-height: 1.72;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--accent-3);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .progress {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 4px;
+      z-index: 20;
+      background: transparent;
+    }
+
+    .progress span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 120ms linear;
+    }
+
+    .mobile-topbar {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 18;
+      padding: 12px 16px;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 18px;
+      border-right: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter: blur(16px);
+      overflow: auto;
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+      padding: 4px 4px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand strong {
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .search-wrap {
+      position: relative;
+      margin: 18px 0 12px;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px 10px 38px;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      outline: none;
+      font: inherit;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+    }
+
+    .nav-section {
+      margin-top: 18px;
+    }
+
+    .nav-section h2 {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    nav a:hover,
+    nav a.active {
+      background: var(--surface-2);
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .sidebar-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--surface);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+      color: var(--accent);
+    }
+
+    main {
+      max-width: 1120px;
+      width: 100%;
+      padding: 42px clamp(18px, 5vw, 64px) 80px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 28px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--accent);
+      background: var(--surface);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 4.6rem);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 820px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .hero-grid,
+    .cards,
+    .two-col {
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 8px;
+    }
+
+    .stat,
+    .card,
+    .callout,
+    .exercise,
+    .toc-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 16px;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--accent);
+      font-size: 1.35rem;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    section {
+      margin: 42px 0;
+      scroll-margin-top: 20px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.45rem, 2vw, 2.15rem);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 24px 0 8px;
+      font-size: 1.15rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.25rem;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .two-col {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .card,
+    .callout,
+    .exercise,
+    .toc-box {
+      padding: 18px;
+    }
+
+    .card h3,
+    .callout h3,
+    .exercise h3 {
+      margin-top: 0;
+    }
+
+    .card p:last-child,
+    .callout p:last-child {
+      margin-bottom: 0;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: color-mix(in srgb, var(--surface) 90%, var(--accent) 10%);
+    }
+
+    .toc-box {
+      box-shadow: none;
+      background: var(--surface-2);
+    }
+
+    .toc-box ol {
+      margin-bottom: 0;
+    }
+
+    details {
+      margin: 12px 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    summary {
+      padding: 14px 16px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    details > div {
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface-2);
+    }
+
+    .code-shell {
+      position: relative;
+      margin: 16px 0;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--code-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .code-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: #b7c8bf;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .copy-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #e9f4ee;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.78rem;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+    }
+
+    pre code {
+      display: block;
+      min-width: max-content;
+      color: var(--code-text);
+      line-height: 1.58;
+      white-space: pre;
+    }
+
+    .tok-comment { color: #7e9188; }
+    .tok-keyword { color: #85d5ff; font-weight: 700; }
+    .tok-string { color: #f0cc84; }
+    .tok-number { color: #c7a7ff; }
+    .tok-function { color: #8fe1b4; }
+
+    .badge-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .badge {
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface);
+      font-size: 0.82rem;
+    }
+
+    .hidden-by-search {
+      display: none;
+    }
+
+    .no-results {
+      display: none;
+      margin: 16px 0;
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: var(--surface);
+    }
+
+    footer {
+      margin-top: 54px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 980px) {
+      .mobile-topbar {
+        display: flex;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: fixed;
+        z-index: 19;
+        inset: 0 auto 0 0;
+        width: min(86vw, 320px);
+        transform: translateX(-105%);
+        transition: transform 180ms ease;
+      }
+
+      body.nav-open aside {
+        transform: translateX(0);
+      }
+
+      main {
+        padding-top: 28px;
+      }
+
+      .hero-grid,
+      .cards,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      h1 {
+        font-size: 2.25rem;
+      }
+
+      main {
+        padding-inline: 14px;
+      }
+
+      .card,
+      .callout,
+      .exercise,
+      .toc-box {
+        padding: 14px;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <div class="mobile-topbar">
+    <button id="menuBtn" aria-label="打开目录">目录</button>
+    <strong>PostgreSQL 学习文档</strong>
+    <button id="themeBtnMobile" aria-label="切换深色模式">主题</button>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <strong>PostgreSQL 从新手到熟练</strong>
+        <span>一份离线可用的系统学习文档</span>
+      </div>
+
+      <label class="search-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M10.8 18.2a7.4 7.4 0 1 1 0-14.8 7.4 7.4 0 0 1 0 14.8Z" stroke="currentColor" stroke-width="2"/>
+          <path d="m16.4 16.4 4.2 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索：索引、事务、JOIN..." autocomplete="off">
+      </label>
+
+      <div class="sidebar-actions">
+        <button id="themeBtn">深色模式</button>
+        <button id="expandBtn">展开全部</button>
+      </div>
+
+      <nav class="nav-section" aria-label="主目录">
+        <h2>学习路线</h2>
+        <a href="#intro">介绍</a>
+        <a href="#objectives">学习目标</a>
+        <a href="#setup">环境安装</a>
+        <a href="#basics">SQL 基础</a>
+        <a href="#modeling">表设计与约束</a>
+        <a href="#queries">查询能力</a>
+        <a href="#transactions">事务与并发</a>
+        <a href="#indexes">索引与性能</a>
+        <a href="#advanced">高级能力</a>
+        <a href="#operations">运维与安全</a>
+        <a href="#apps">应用连接</a>
+        <a href="#exercises">练习项目</a>
+        <a href="#summary">总结</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article id="content">
+        <header class="hero" id="intro">
+          <span class="eyebrow">PostgreSQL 18 当前文档线参考</span>
+          <h1>PostgreSQL 从新手到熟练</h1>
+          <p class="lead">这份文档按真实学习顺序组织：先能安装、建表、写查询，再理解约束、事务、索引、执行计划、备份、安全和应用接入。你可以把它当作一份离线课程，也可以当作项目中随手查的实践手册。</p>
+          <div class="hero-grid">
+            <div class="stat"><b>12</b><span>核心章节</span></div>
+            <div class="stat"><b>40+</b><span>可运行 SQL 示例</span></div>
+            <div class="stat"><b>6</b><span>练习项目</span></div>
+            <div class="stat"><b>0</b><span>外部依赖</span></div>
+          </div>
+        </header>
+
+        <section id="objectives" data-search>
+          <h2>学习目标</h2>
+          <p>学 PostgreSQL 的关键不是背命令，而是建立一条清晰的思考链：数据如何建模，SQL 如何表达问题，数据库如何保证一致性，查询为什么快或慢，系统如何稳定运行。</p>
+          <div class="cards">
+            <div class="card">
+              <h3>新手阶段</h3>
+              <p>能安装 PostgreSQL，使用 <code>psql</code>，创建数据库、表、约束，并完成增删改查。</p>
+            </div>
+            <div class="card">
+              <h3>进阶阶段</h3>
+              <p>能写 JOIN、聚合、窗口函数、CTE，理解事务隔离级别和常见并发问题。</p>
+            </div>
+            <div class="card">
+              <h3>熟练阶段</h3>
+              <p>能用索引和 <code>EXPLAIN</code> 分析性能，做备份恢复、权限管理、迁移和应用接入。</p>
+            </div>
+          </div>
+          <div class="toc-box">
+            <h3>推荐学习顺序</h3>
+            <ol>
+              <li>用 Docker 或本机安装启动 PostgreSQL。</li>
+              <li>用一套业务小模型反复练习 CRUD 和查询。</li>
+              <li>引入约束、事务和索引，开始解释“为什么”。</li>
+              <li>使用 <code>EXPLAIN</code>、备份、权限、连接池处理真实项目问题。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="setup" data-search>
+          <h2>环境安装</h2>
+          <p>PostgreSQL 是一个客户端/服务端数据库。服务端负责存储和执行 SQL，客户端如 <code>psql</code>、GUI 工具或应用程序负责连接它。</p>
+
+          <details open>
+            <summary>使用 Docker 快速启动</summary>
+            <div>
+              <p>这种方式适合学习和项目试验，能避免本机环境差异。</p>
+              <div class="code-shell">
+                <div class="code-head"><span>shell</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="shell"># 启动一个 PostgreSQL 容器，密码仅用于本地学习
+docker run --name pg-study \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=study \
+  -p 5432:5432 \
+  -d postgres:18
+
+# 进入 psql 命令行客户端
+docker exec -it pg-study psql -U postgres -d study
+
+# 停止和删除学习容器
+docker stop pg-study
+docker rm pg-study</code></pre>
+              </div>
+              <p>常见错误：端口 <code>5432</code> 被占用。可以改为 <code>-p 5433:5432</code>，之后连接本机 <code>5433</code>。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>psql 必会命令</summary>
+            <div>
+              <table>
+                <thead>
+                  <tr><th>命令</th><th>用途</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>\l</code></td><td>列出数据库</td></tr>
+                  <tr><td><code>\c study</code></td><td>连接到指定数据库</td></tr>
+                  <tr><td><code>\dt</code></td><td>列出当前 schema 的表</td></tr>
+                  <tr><td><code>\d users</code></td><td>查看表结构</td></tr>
+                  <tr><td><code>\x</code></td><td>切换扩展显示，适合看宽表</td></tr>
+                  <tr><td><code>\timing</code></td><td>显示 SQL 执行时间</td></tr>
+                  <tr><td><code>\q</code></td><td>退出 psql</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+
+        <section id="basics" data-search>
+          <h2>SQL 基础</h2>
+          <p>SQL 是声明式语言。你描述“要什么结果”，数据库负责选择执行方式。新手最重要的是养成显式列名、明确条件、先查后改的习惯。</p>
+
+          <h3>创建一个学习库模型</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 创建用户表：每个用户有唯一邮箱
+CREATE TABLE users (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 创建订单表：每个订单属于一个用户
+CREATE TABLE orders (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  amount NUMERIC(12, 2) NOT NULL CHECK (amount >= 0),
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);</code></pre>
+          </div>
+
+          <h3>增删改查</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 插入多行数据，并返回生成的 id
+INSERT INTO users (name, email)
+VALUES
+  ('Ada', 'ada@example.com'),
+  ('Linus', 'linus@example.com')
+RETURNING id, name, email;
+
+-- 查询活跃用户，永远优先写明确列名
+SELECT id, name, email, created_at
+FROM users
+WHERE status = 'active'
+ORDER BY created_at DESC;
+
+-- 修改单个用户，WHERE 条件要足够精确
+UPDATE users
+SET status = 'disabled'
+WHERE email = 'linus@example.com'
+RETURNING id, status;
+
+-- 删除前先 SELECT 检查命中范围
+DELETE FROM users
+WHERE status = 'disabled'
+RETURNING id, email;</code></pre>
+          </div>
+
+          <div class="callout">
+            <h3>常见错误</h3>
+            <p>忘记 <code>WHERE</code> 的 <code>UPDATE</code> 和 <code>DELETE</code> 会影响整张表。实际工作中，先用同样条件写 <code>SELECT count(*)</code> 看范围，再执行修改。</p>
+          </div>
+        </section>
+
+        <section id="modeling" data-search>
+          <h2>表设计与约束</h2>
+          <p>表设计的目标是让非法数据尽早失败。应用层可以做校验，但数据库约束是最后一道一致性边界。</p>
+
+          <div class="two-col">
+            <div class="card">
+              <h3>常用数据类型</h3>
+              <ul>
+                <li><code>BIGINT</code>：自增主键或大整数。</li>
+                <li><code>TEXT</code>：变长文本，业务系统中通常够用。</li>
+                <li><code>NUMERIC(p, s)</code>：金额等精确小数。</li>
+                <li><code>TIMESTAMPTZ</code>：带时区语义的时间点，推荐用于事件时间。</li>
+                <li><code>JSONB</code>：半结构化数据，但不要把所有字段都塞进去。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>常用约束</h3>
+              <ul>
+                <li><code>PRIMARY KEY</code>：唯一标识一行。</li>
+                <li><code>NOT NULL</code>：字段必须有值。</li>
+                <li><code>UNIQUE</code>：保证业务唯一性。</li>
+                <li><code>CHECK</code>：保证字段范围或状态集合。</li>
+                <li><code>FOREIGN KEY</code>：保证表之间引用存在。</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 使用 CHECK 限制状态枚举，避免脏状态进入表
+ALTER TABLE users
+ADD CONSTRAINT users_status_check
+CHECK (status IN ('active', 'disabled', 'deleted'));
+
+-- 为订单添加业务编号，保证唯一且可读
+ALTER TABLE orders
+ADD COLUMN order_no TEXT UNIQUE;
+
+-- 给外键设置级联策略要谨慎，这里选择禁止删除仍有订单的用户
+ALTER TABLE orders
+DROP CONSTRAINT orders_user_id_fkey,
+ADD CONSTRAINT orders_user_id_fkey
+FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT;</code></pre>
+          </div>
+
+          <details>
+            <summary>规范化与反规范化</summary>
+            <div>
+              <p>规范化是把重复数据拆到独立表，靠外键引用，优点是一致性强。反规范化是为了查询性能或报表便利保留冗余字段，优点是读取简单。熟练的判断方式是：先保证模型正确，再用明确的性能证据决定是否冗余。</p>
+            </div>
+          </details>
+        </section>
+
+        <section id="queries" data-search>
+          <h2>查询能力</h2>
+          <p>查询是 PostgreSQL 的日常核心。越复杂的查询越要分层表达：先过滤，再连接，再聚合，最后排序分页。</p>
+
+          <h3>JOIN：把表重新组合成业务视图</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 查询每个用户的订单总额，LEFT JOIN 会保留没有订单的用户
+SELECT
+  u.id,
+  u.name,
+  COALESCE(SUM(o.amount), 0) AS total_amount
+FROM users AS u
+LEFT JOIN orders AS o ON o.user_id = u.id
+GROUP BY u.id, u.name
+ORDER BY total_amount DESC;</code></pre>
+          </div>
+
+          <h3>CTE：让复杂 SQL 更可读</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 先计算付费订单，再按用户汇总
+WITH paid_orders AS (
+  SELECT user_id, amount
+  FROM orders
+  WHERE paid_at IS NOT NULL
+)
+SELECT
+  user_id,
+  COUNT(*) AS paid_order_count,
+  SUM(amount) AS paid_amount
+FROM paid_orders
+GROUP BY user_id;</code></pre>
+          </div>
+
+          <h3>窗口函数：保留明细同时计算排名</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 给每个用户的订单按金额排名
+SELECT
+  id,
+  user_id,
+  amount,
+  ROW_NUMBER() OVER (
+    PARTITION BY user_id
+    ORDER BY amount DESC
+  ) AS amount_rank
+FROM orders;</code></pre>
+          </div>
+
+          <details>
+            <summary>分页：OFFSET 与游标式分页</summary>
+            <div>
+              <p><code>LIMIT/OFFSET</code> 简单，但页数越深越慢，因为数据库仍然需要跳过前面的行。业务列表更推荐“游标式分页”，使用上一页最后一条记录的排序键继续查询。</p>
+              <div class="code-shell">
+                <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="sql">-- 游标式分页：稳定、可走索引、适合无限滚动
+SELECT id, created_at, amount
+FROM orders
+WHERE created_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'
+ORDER BY created_at DESC, id DESC
+LIMIT 20;</code></pre>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section id="transactions" data-search>
+          <h2>事务与并发</h2>
+          <p>事务把多条 SQL 变成一个原子操作。它要么全部成功，要么全部失败。数据库用隔离级别和锁来处理多个会话同时读写的问题。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 一个付款流程：订单付款和用户状态修改必须一起成功
+BEGIN;
+
+UPDATE orders
+SET paid_at = now()
+WHERE id = 101 AND paid_at IS NULL
+RETURNING id, paid_at;
+
+UPDATE users
+SET status = 'active'
+WHERE id = 5;
+
+COMMIT;
+
+-- 如果中间发现数据不对，可以 ROLLBACK 回滚
+-- ROLLBACK;</code></pre>
+          </div>
+
+          <table>
+            <thead>
+              <tr><th>隔离级别</th><th>适合场景</th><th>注意点</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>READ COMMITTED</code></td><td>多数 Web 业务默认选择</td><td>同一事务内两次查询可能看到不同提交结果</td></tr>
+              <tr><td><code>REPEATABLE READ</code></td><td>需要事务内快照稳定</td><td>可能出现序列化失败，需要重试策略</td></tr>
+              <tr><td><code>SERIALIZABLE</code></td><td>强一致性、金融类关键流程</td><td>并发冲突更多，应用必须能重试事务</td></tr>
+            </tbody>
+          </table>
+
+          <details>
+            <summary>行锁：避免同一资源被重复处理</summary>
+            <div>
+              <div class="code-shell">
+                <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="sql">-- 多个 worker 抢任务时，跳过已被锁定的任务
+BEGIN;
+
+SELECT id, payload
+FROM jobs
+WHERE status = 'pending'
+ORDER BY id
+FOR UPDATE SKIP LOCKED
+LIMIT 10;
+
+-- 处理完任务后标记完成
+UPDATE jobs
+SET status = 'done'
+WHERE id IN (1, 2, 3);
+
+COMMIT;</code></pre>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section id="indexes" data-search>
+          <h2>索引与性能</h2>
+          <p>索引让数据库更快定位行，但也会增加写入成本和存储空间。不要“所有字段都建索引”，要根据查询条件、排序方式和基数来设计。</p>
+
+          <div class="badge-list">
+            <span class="badge">B-tree：默认索引</span>
+            <span class="badge">GIN：JSONB / 数组 / 全文</span>
+            <span class="badge">BRIN：超大顺序数据</span>
+            <span class="badge">Partial：部分索引</span>
+            <span class="badge">Expression：表达式索引</span>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 查询经常按 user_id 和 created_at 过滤/排序时，建立复合索引
+CREATE INDEX idx_orders_user_created
+ON orders (user_id, created_at DESC);
+
+-- 只索引未付款订单，减少索引体积
+CREATE INDEX idx_orders_unpaid
+ON orders (created_at)
+WHERE paid_at IS NULL;
+
+-- 邮箱大小写不敏感查询可以用表达式索引
+CREATE INDEX idx_users_lower_email
+ON users (lower(email));</code></pre>
+          </div>
+
+          <h3>用 EXPLAIN 看执行计划</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- BUFFERS 能显示读取了多少共享缓冲区，有助于判断 IO 压力
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, amount, created_at
+FROM orders
+WHERE user_id = 5
+ORDER BY created_at DESC
+LIMIT 20;</code></pre>
+          </div>
+
+          <div class="callout">
+            <h3>调优顺序</h3>
+            <p>先确认慢 SQL 和真实参数，再看执行计划，然后评估索引、统计信息、SQL 写法和数据量。不要只凭感觉建索引。</p>
+          </div>
+        </section>
+
+        <section id="advanced" data-search>
+          <h2>高级能力</h2>
+          <p>PostgreSQL 不只是关系数据库，也提供 JSONB、全文搜索、视图、函数、触发器、分区等能力。熟练使用的标准是：知道何时用，也知道何时不用。</p>
+
+          <details open>
+            <summary>JSONB：存储半结构化属性</summary>
+            <div>
+              <div class="code-shell">
+                <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="sql">-- 给用户增加 profile，用于保存可变属性
+ALTER TABLE users
+ADD COLUMN profile JSONB NOT NULL DEFAULT '{}';
+
+-- 查询 JSONB 字段中的城市
+SELECT id, name, profile ->> 'city' AS city
+FROM users
+WHERE profile @> '{"city": "Shanghai"}';
+
+-- 为 JSONB 包含查询建立 GIN 索引
+CREATE INDEX idx_users_profile_gin
+ON users USING gin (profile);</code></pre>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>视图：封装稳定查询</summary>
+            <div>
+              <div class="code-shell">
+                <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="sql">-- 把常用报表查询封装成视图
+CREATE VIEW user_order_summary AS
+SELECT
+  u.id AS user_id,
+  u.name,
+  COUNT(o.id) AS order_count,
+  COALESCE(SUM(o.amount), 0) AS total_amount
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id
+GROUP BY u.id, u.name;
+
+-- 像普通表一样查询视图
+SELECT *
+FROM user_order_summary
+ORDER BY total_amount DESC;</code></pre>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>分区表：管理大表</summary>
+            <div>
+              <p>分区适合按时间或范围增长的超大表，例如日志、订单流水、事件数据。它主要解决维护、裁剪和归档问题，不是所有慢查询的万能药。</p>
+              <div class="code-shell">
+                <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="sql">-- 按月份创建范围分区父表
+CREATE TABLE events (
+  id BIGINT GENERATED ALWAYS AS IDENTITY,
+  event_time TIMESTAMPTZ NOT NULL,
+  payload JSONB NOT NULL
+) PARTITION BY RANGE (event_time);
+
+-- 创建 2026 年 1 月分区
+CREATE TABLE events_2026_01
+PARTITION OF events
+FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');</code></pre>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section id="operations" data-search>
+          <h2>运维与安全</h2>
+          <p>会写 SQL 只是第一步。生产环境还要考虑备份、恢复、权限、连接数、监控和迁移。</p>
+
+          <div class="two-col">
+            <div>
+              <h3>备份与恢复</h3>
+              <div class="code-shell">
+                <div class="code-head"><span>shell</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="shell"># 逻辑备份单个数据库，适合迁移和中小库备份
+pg_dump -h localhost -U postgres -d study -Fc -f study.dump
+
+# 恢复到新数据库，先创建目标库
+createdb -h localhost -U postgres study_restore
+pg_restore -h localhost -U postgres -d study_restore study.dump</code></pre>
+              </div>
+            </div>
+            <div>
+              <h3>权限最小化</h3>
+              <div class="code-shell">
+                <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+                <pre><code data-lang="sql">-- 为应用创建独立用户，避免使用超级用户连接
+CREATE ROLE app_user LOGIN PASSWORD 'change-me';
+
+-- 只授予必要权限
+GRANT CONNECT ON DATABASE study TO app_user;
+GRANT USAGE ON SCHEMA public TO app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <details>
+            <summary>生产环境检查清单</summary>
+            <div>
+              <ul>
+                <li>应用连接使用普通账号，不使用 <code>postgres</code> 超级用户。</li>
+                <li>定期演练恢复，备份没恢复过就不算真正可靠。</li>
+                <li>打开慢查询日志，定位真实慢 SQL。</li>
+                <li>控制连接数，应用侧使用连接池。</li>
+                <li>迁移脚本可回放、可审查，避免手工改生产表。</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+
+        <section id="apps" data-search>
+          <h2>应用连接</h2>
+          <p>应用连接 PostgreSQL 时，重点是参数化查询、连接池、超时和事务边界。永远不要把用户输入拼成 SQL 字符串。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">// 使用 pgxpool 连接 PostgreSQL，示例省略错误处理细节之外的业务代码
+package main
+
+import (
+  "context"
+  "fmt"
+  "log"
+
+  "github.com/jackc/pgx/v5/pgxpool"
+)
+
+func main() {
+  // 连接串应放在环境变量中，避免写死密码
+  dsn := "postgres://app_user:change-me@localhost:5432/study"
+  pool, err := pgxpool.New(context.Background(), dsn)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer pool.Close()
+
+  // 参数化查询用 $1、$2，防止 SQL 注入
+  var name string
+  err = pool.QueryRow(context.Background(),
+    "SELECT name FROM users WHERE email = $1",
+    "ada@example.com",
+  ).Scan(&name)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  fmt.Println(name)
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>javascript</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="javascript">// 使用 node-postgres 的连接池执行参数化查询
+import pg from "pg";
+
+const pool = new pg.Pool({
+  // 生产环境建议从环境变量读取 DATABASE_URL
+  connectionString: "postgres://app_user:change-me@localhost:5432/study",
+  max: 10,
+  idleTimeoutMillis: 30000
+});
+
+// $1 是参数占位符，不要拼接用户输入
+const result = await pool.query(
+  "SELECT id, name FROM users WHERE email = $1",
+  ["ada@example.com"]
+);
+
+console.log(result.rows);</code></pre>
+          </div>
+        </section>
+
+        <section id="exercises" data-search>
+          <h2>练习项目</h2>
+          <p>熟练来自“带约束的反复练习”。下面的项目从小到大，建议每个都写建表脚本、种子数据、查询脚本和性能分析记录。</p>
+
+          <div class="cards">
+            <div class="exercise">
+              <h3>1. 图书借阅系统</h3>
+              <p>设计 <code>books</code>、<code>members</code>、<code>loans</code>，实现借书、还书、逾期查询。</p>
+            </div>
+            <div class="exercise">
+              <h3>2. 电商订单系统</h3>
+              <p>设计用户、商品、订单、订单项、支付记录，练习事务和库存扣减。</p>
+            </div>
+            <div class="exercise">
+              <h3>3. 内容标签系统</h3>
+              <p>实现文章、标签、多对多关系，练习 JOIN、聚合和全文搜索。</p>
+            </div>
+            <div class="exercise">
+              <h3>4. 任务队列</h3>
+              <p>使用 <code>FOR UPDATE SKIP LOCKED</code>，实现多个 worker 并发抢任务。</p>
+            </div>
+            <div class="exercise">
+              <h3>5. 用户行为日志</h3>
+              <p>使用分区表和 JSONB，练习大表查询、归档和统计。</p>
+            </div>
+            <div class="exercise">
+              <h3>6. 慢查询诊断</h3>
+              <p>构造百万级订单数据，用 <code>EXPLAIN</code> 对比无索引、单列索引、复合索引。</p>
+            </div>
+          </div>
+
+          <h3>综合练习 SQL</h3>
+          <div class="code-shell">
+            <div class="code-head"><span>sql</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="sql">-- 练习：找出最近 30 天消费最高的 10 个用户
+WITH recent_paid_orders AS (
+  SELECT user_id, amount
+  FROM orders
+  WHERE paid_at >= now() - INTERVAL '30 days'
+)
+SELECT
+  u.id,
+  u.name,
+  COUNT(*) AS order_count,
+  SUM(r.amount) AS total_amount
+FROM recent_paid_orders r
+JOIN users u ON u.id = r.user_id
+GROUP BY u.id, u.name
+ORDER BY total_amount DESC
+LIMIT 10;</code></pre>
+          </div>
+        </section>
+
+        <section id="summary" data-search>
+          <h2>总结</h2>
+          <p>从新手到熟练的路线可以浓缩为三句话：用约束保护数据，用 SQL 清晰表达问题，用执行计划验证性能判断。PostgreSQL 很强，但真正让系统可靠的是你对数据边界、事务边界和查询边界的理解。</p>
+          <div class="callout">
+            <h3>下一步</h3>
+            <p>从一个小业务模型开始，把本文所有 SQL 都跑一遍。然后给表加十万到一百万行测试数据，观察索引、分页和执行计划的变化。</p>
+          </div>
+          <h3>官方参考</h3>
+          <ul>
+            <li><a href="https://www.postgresql.org/docs/current/index.htm">PostgreSQL 当前官方文档</a></li>
+            <li><a href="https://www.postgresql.org/docs/current/indexes.html">官方文档：Indexes</a></li>
+            <li><a href="https://www.postgresql.org/docs/current/static/sql-explain.html">官方文档：EXPLAIN</a></li>
+            <li><a href="https://www.postgresql.org/docs/current/static/sql-insert.html">官方文档：INSERT</a></li>
+          </ul>
+        </section>
+      </article>
+
+      <p class="no-results" id="noResults">没有找到匹配章节。换个关键词试试，比如“事务”“索引”“JSONB”。</p>
+
+      <footer>
+        <p>本页面是单文件离线教程，保存为 HTML 后可直接用浏览器打开。内容参考 PostgreSQL 官方当前文档线，并以通用实践为主。</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const body = document.body;
+    const searchInput = document.getElementById("searchInput");
+    const progressBar = document.getElementById("progressBar");
+    const noResults = document.getElementById("noResults");
+    const expandBtn = document.getElementById("expandBtn");
+    const themeButtons = [document.getElementById("themeBtn"), document.getElementById("themeBtnMobile")];
+    const menuBtn = document.getElementById("menuBtn");
+    const sections = [...document.querySelectorAll("section[data-search]")];
+    const navLinks = [...document.querySelectorAll("nav a")];
+
+    function setTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("pgStudyTheme", theme);
+      const label = theme === "dark" ? "浅色模式" : "深色模式";
+      themeButtons.forEach((button) => {
+        if (button) button.textContent = label;
+      });
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      setTheme(current);
+    }
+
+    function updateProgress() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const percent = max <= 0 ? 0 : (window.scrollY / max) * 100;
+      progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function highlight(code, lang) {
+      let html = escapeHtml(code);
+      html = html.replace(/('[^'\n]*')/g, '<span class="tok-string">$1</span>');
+      html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-number">$1</span>');
+
+      if (lang === "sql") {
+        html = html.replace(/\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP BY|ORDER BY|INSERT|INTO|VALUES|UPDATE|SET|DELETE|RETURNING|CREATE|TABLE|ALTER|ADD|COLUMN|CONSTRAINT|CHECK|PRIMARY KEY|FOREIGN KEY|REFERENCES|INDEX|VIEW|WITH|AS|BEGIN|COMMIT|ROLLBACK|LIMIT|PARTITION BY|RANGE|FOR VALUES|EXPLAIN|ANALYZE|BUFFERS|UNIQUE|NOT NULL|DEFAULT|GENERATED ALWAYS AS IDENTITY|USING|GIN|AND|OR|IS NULL|IS NOT NULL|COUNT|SUM|COALESCE|ROW_NUMBER|OVER|INTERVAL)\b/g, '<span class="tok-keyword">$1</span>');
+        html = html.replace(/(--.*)$/gm, '<span class="tok-comment">$1</span>');
+      }
+
+      if (lang === "shell") {
+        html = html.replace(/^(#.*)$/gm, '<span class="tok-comment">$1</span>');
+        html = html.replace(/\b(docker|psql|pg_dump|pg_restore|createdb|stop|rm|run|exec)\b/g, '<span class="tok-keyword">$1</span>');
+      }
+
+      if (lang === "go" || lang === "javascript") {
+        html = html.replace(/(\/\/.*)$/gm, '<span class="tok-comment">$1</span>');
+        html = html.replace(/\b(package|import|func|const|var|defer|if|return|await|from|new)\b/g, '<span class="tok-keyword">$1</span>');
+        html = html.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\(/g, '<span class="tok-function">$1</span>(');
+      }
+
+      return html;
+    }
+
+    function prepareCodeBlocks() {
+      document.querySelectorAll("pre code").forEach((code) => {
+        const raw = code.textContent;
+        code.dataset.raw = raw;
+        code.innerHTML = highlight(raw, code.dataset.lang || "");
+      });
+
+      document.querySelectorAll(".copy-btn").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-shell").querySelector("code").dataset.raw;
+          await navigator.clipboard.writeText(code);
+          button.textContent = "已复制";
+          setTimeout(() => {
+            button.textContent = "复制";
+          }, 1200);
+        });
+      });
+    }
+
+    function filterSections() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      sections.forEach((section) => {
+        const text = section.textContent.toLowerCase();
+        const isVisible = !query || text.includes(query);
+        section.classList.toggle("hidden-by-search", !isVisible);
+        if (isVisible) visibleCount += 1;
+      });
+
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+
+    function updateActiveNav() {
+      let activeId = "intro";
+      const probe = window.scrollY + 110;
+
+      document.querySelectorAll("header[id], section[id]").forEach((section) => {
+        if (section.offsetTop <= probe) {
+          activeId = section.id;
+        }
+      });
+
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === `#${activeId}`);
+      });
+    }
+
+    function toggleAllDetails() {
+      const details = [...document.querySelectorAll("details")];
+      const shouldOpen = details.some((item) => !item.open);
+      details.forEach((item) => {
+        item.open = shouldOpen;
+      });
+      expandBtn.textContent = shouldOpen ? "收起全部" : "展开全部";
+    }
+
+    const savedTheme = localStorage.getItem("pgStudyTheme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setTheme(savedTheme || (prefersDark ? "dark" : "light"));
+    prepareCodeBlocks();
+    updateProgress();
+    updateActiveNav();
+
+    themeButtons.forEach((button) => {
+      if (button) button.addEventListener("click", toggleTheme);
+    });
+    expandBtn.addEventListener("click", toggleAllDetails);
+    searchInput.addEventListener("input", filterSections);
+    window.addEventListener("scroll", () => {
+      updateProgress();
+      updateActiveNav();
+    }, { passive: true });
+    menuBtn.addEventListener("click", () => body.classList.toggle("nav-open"));
+    navLinks.forEach((link) => {
+      link.addEventListener("click", () => body.classList.remove("nav-open"));
+    });
+  </script>
+</body>
+</html>
