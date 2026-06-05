@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go net/http 螺旋式新手教程</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --card: #161b22;
+      --card-2: #1f2630;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #9da7b3;
+      --accent: #58a6ff;
+      --green: #7ee787;
+      --yellow: #f2cc60;
+      --red: #ff7b72;
+      --code-bg: #0b1017;
+      --shadow: 0 20px 54px rgba(0, 0, 0, 0.34);
+      --radius: 8px;
+      --sidebar: 318px;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(88, 166, 255, 0.16), transparent 420px),
+        linear-gradient(180deg, #0d1117 0%, #10161f 100%);
+      font-family: var(--sans);
+      line-height: 1.72;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.92em;
+    }
+
+    .progress {
+      position: fixed;
+      inset: 0 0 auto 0;
+      height: 4px;
+      z-index: 40;
+      background: transparent;
+    }
+
+    .progress span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+    }
+
+    .mobile-bar {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 32;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 17, 23, 0.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 22px 16px;
+      border-right: 1px solid var(--border);
+      background: rgba(13, 17, 23, 0.88);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      padding: 4px 4px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 1.02rem;
+      line-height: 1.3;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .search {
+      margin: 18px 0 12px;
+    }
+
+    .search input {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      color: var(--text);
+      background: var(--card);
+      font: inherit;
+    }
+
+    .search input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.16);
+    }
+
+    .sidebar-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      min-height: 38px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--card);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    nav h2 {
+      margin: 18px 4px 8px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    nav a:hover,
+    nav a.active {
+      color: var(--accent);
+      background: var(--card);
+      text-decoration: none;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1160px;
+      padding: 42px clamp(18px, 5vw, 64px) 76px;
+    }
+
+    .hero {
+      padding-bottom: 30px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--green);
+      background: var(--card);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 18px 0 14px;
+      font-size: clamp(2.05rem, 4vw, 4.35rem);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 880px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .meta-grid,
+    .cards,
+    .two-col {
+      display: grid;
+      gap: 14px;
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 22px;
+    }
+
+    .stat,
+    .card,
+    .callout,
+    .toc-box,
+    .exercise,
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 16px;
+    }
+
+    .stat b {
+      display: block;
+      color: var(--accent);
+      font-size: 1.28rem;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    section {
+      margin: 44px 0;
+      scroll-margin-top: 20px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.45rem, 2vw, 2.12rem);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 1.15rem;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.24rem;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .two-col {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .card,
+    .callout,
+    .toc-box,
+    .exercise {
+      padding: 18px;
+    }
+
+    .card h3,
+    .callout h3,
+    .exercise h3 {
+      margin-top: 0;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: linear-gradient(90deg, rgba(88, 166, 255, 0.12), var(--card));
+    }
+
+    .warning {
+      border-left-color: var(--yellow);
+      background: linear-gradient(90deg, rgba(242, 204, 96, 0.12), var(--card));
+    }
+
+    .danger {
+      border-left-color: var(--red);
+      background: linear-gradient(90deg, rgba(255, 123, 114, 0.12), var(--card));
+    }
+
+    details {
+      margin: 12px 0;
+      overflow: hidden;
+      box-shadow: none;
+    }
+
+    summary {
+      padding: 14px 16px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    details > div {
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      margin: 14px 0;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--card);
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--green);
+      background: var(--card-2);
+    }
+
+    .code-shell {
+      margin: 16px 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--code-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .code-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+
+    .copy-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      color: var(--text);
+      background: #21262d;
+      font-size: 0.78rem;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    pre code {
+      display: block;
+      min-width: max-content;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.58;
+      white-space: pre;
+    }
+
+    .tok-comment { color: #8b949e; }
+    .tok-keyword { color: #ff7b72; font-weight: 700; }
+    .tok-string { color: #a5d6ff; }
+    .tok-number { color: #79c0ff; }
+    .tok-function { color: #d2a8ff; }
+    .tok-type { color: #ffa657; }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .badge {
+      padding: 4px 9px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--card);
+      font-size: 0.82rem;
+    }
+
+    .step-label {
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+
+    .hidden-by-search {
+      display: none;
+    }
+
+    .no-results {
+      display: none;
+      padding: 14px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: var(--card);
+    }
+
+    footer {
+      margin-top: 52px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 980px) {
+      .mobile-bar {
+        display: flex;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: fixed;
+        z-index: 38;
+        inset: 0 auto 0 0;
+        width: min(88vw, 332px);
+        transform: translateX(-105%);
+        transition: transform 180ms ease;
+      }
+
+      body.nav-open aside {
+        transform: translateX(0);
+      }
+
+      main {
+        padding-top: 30px;
+      }
+
+      .meta-grid,
+      .cards,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      h1 {
+        font-size: 2.16rem;
+      }
+
+      main {
+        padding-inline: 14px;
+      }
+
+      .card,
+      .callout,
+      .toc-box,
+      .exercise {
+        padding: 14px;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <div class="mobile-bar">
+    <button id="menuBtn" aria-label="打开目录">目录</button>
+    <strong>net/http</strong>
+    <button id="expandBtnMobile" aria-label="展开所有章节">展开</button>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <strong>Go net/http 螺旋式教程</strong>
+        <span>每次只加一个新概念，每一步代码都能跑</span>
+      </div>
+
+      <label class="search">
+        <input id="searchInput" type="search" placeholder="搜索：路由、JSON、Shutdown..." autocomplete="off">
+      </label>
+
+      <div class="sidebar-actions">
+        <button id="expandBtn">展开全部</button>
+        <button id="topBtn">回到顶部</button>
+      </div>
+
+      <nav aria-label="课程目录">
+        <h2>目录</h2>
+        <a href="#intro">课程介绍</a>
+        <a href="#setup">准备工作</a>
+        <a href="#step1">1. 最小服务器</a>
+        <a href="#step2">2. 多路由</a>
+        <a href="#step3">3. 请求方法</a>
+        <a href="#step4">4. 查询参数</a>
+        <a href="#step5">5. 路径参数</a>
+        <a href="#step6">6. 状态码与 Header</a>
+        <a href="#step7">7. JSON 响应</a>
+        <a href="#step8">8. JSON 请求体</a>
+        <a href="#step9">9. Handler 抽象</a>
+        <a href="#step10">10. 中间件</a>
+        <a href="#step11">11. Context</a>
+        <a href="#step12">12. Server 配置</a>
+        <a href="#step13">13. 优雅关闭</a>
+        <a href="#step14">14. 测试 Handler</a>
+        <a href="#mistakes">常见错误</a>
+        <a href="#practice">练习</a>
+        <a href="#interview">面试题</a>
+        <a href="#summary">总结</a>
+      </nav>
+    </aside>
+
+    <main>
+      <article id="content">
+        <header class="hero" id="intro">
+          <span class="tag">Go Master Skill · net/http · Spiral Tutorial</span>
+          <h1>Go net/http 知识点：螺旋式新手教程</h1>
+          <p class="lead">本教程不一次性塞满概念，而是像搭积木一样学习：第 1 步只会启动服务器，第 2 步只增加路由，第 3 步只增加请求方法。每一步代码都能独立运行，让你在稳定的小胜利里把 <code>net/http</code> 真正吃透。</p>
+          <div class="meta-grid">
+            <div class="stat"><b>14</b><span>可运行小步骤</span></div>
+            <div class="stat"><b>1</b><span>每步只加一个新概念</span></div>
+            <div class="stat"><b>0</b><span>外部 Web 框架依赖</span></div>
+            <div class="stat"><b>生产级</b><span>超时、关闭、测试都覆盖</span></div>
+          </div>
+        </header>
+
+        <section id="setup" data-search>
+          <h2>准备工作</h2>
+          <p><strong>What：</strong><code>net/http</code> 是 Go 标准库里的 HTTP 客户端和服务端包。本教程聚焦服务端。</p>
+          <p><strong>Why：</strong>Gin、Echo、Fiber 等框架底层都绕不开 HTTP 基础。先学标准库，后面用框架会更稳。</p>
+          <p><strong>Problem：</strong>很多新手直接上框架，能写接口但不理解 handler、request、response、context、server timeout，生产排错时会很吃力。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 创建一个学习目录
+mkdir go-net-http-demo
+cd go-net-http-demo
+
+# 初始化 Go module
+go mod init example.com/net-http-demo
+
+# 后续每一步都把代码保存为 main.go，然后运行
+go run main.go</code></pre>
+          </div>
+
+          <div class="toc-box">
+            <h3>螺旋式学习规则</h3>
+            <ol>
+              <li>每一步只新增一个概念。</li>
+              <li>每一步都能独立复制为 <code>main.go</code> 运行。</li>
+              <li>每一步都用 <code>curl</code> 验证结果。</li>
+              <li>先理解为什么，再看代码怎么写。</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="step1" data-search>
+          <p class="step-label">Step 1 · 新概念：最小 HTTP 服务器</p>
+          <h2>1. 最小服务器</h2>
+          <p><strong>What：</strong>一个 HTTP 服务至少需要一个 handler 和一个监听端口。</p>
+          <p><strong>Why：</strong>handler 是请求进入业务代码的入口，<code>ListenAndServe</code> 负责监听端口并接收连接。</p>
+          <p><strong>Principle：</strong><code>http.HandleFunc</code> 把路径注册到默认路由表，<code>http.ListenAndServe</code> 使用默认路由表处理请求。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	// 注册根路径处理函数：浏览器或 curl 访问 / 时会执行这里。
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// ResponseWriter 用来写响应内容。
+		fmt.Fprintln(w, "hello net/http")
+	})
+
+	// 启动 HTTP 服务，监听本机 8080 端口。
+	fmt.Println("server listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 运行服务
+go run main.go
+
+# 新开一个终端请求接口
+curl http://localhost:8080/
+
+# 预期输出
+# hello net/http</code></pre>
+          </div>
+        </section>
+
+        <section id="step2" data-search>
+          <p class="step-label">Step 2 · 新概念：多个路由</p>
+          <h2>2. 多路由</h2>
+          <p><strong>What：</strong>路由负责把不同 URL 路径分发到不同 handler。</p>
+          <p><strong>Why：</strong>真实服务通常有多个接口，例如健康检查、用户接口、订单接口。</p>
+          <p><strong>Principle：</strong><code>ServeMux</code> 是标准库路由器。这里开始显式创建 <code>mux</code>，不再依赖默认全局路由表。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	// 显式创建路由器，避免大型项目里使用全局默认路由表。
+	mux := http.NewServeMux()
+
+	// 健康检查路由。
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "ok")
+	})
+
+	// 用户路由。
+	mux.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "users list")
+	})
+
+	fmt.Println("server listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 运行服务
+go run main.go
+
+# 请求健康检查
+curl http://localhost:8080/health
+
+# 请求用户列表
+curl http://localhost:8080/users</code></pre>
+          </div>
+        </section>
+
+        <section id="step3" data-search>
+          <p class="step-label">Step 3 · 新概念：请求方法</p>
+          <h2>3. 请求方法</h2>
+          <p><strong>What：</strong>HTTP 方法描述动作，例如 <code>GET</code> 查询资源，<code>POST</code> 创建资源。</p>
+          <p><strong>Why：</strong>同一个路径可能要根据方法做不同事情，比如 <code>GET /users</code> 查询，<code>POST /users</code> 创建。</p>
+          <p><strong>Principle：</strong>标准库的 <code>Request.Method</code> 保存请求方法。Go 1.22 以后，<code>ServeMux</code> 也支持在 pattern 里写方法，例如 <code>GET /users</code>。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+
+	// Go 1.22+ 的 ServeMux pattern 可以包含 HTTP 方法。
+	mux.HandleFunc("GET /users", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "list users")
+	})
+
+	// 同一个路径，不同方法，映射到不同处理逻辑。
+	mux.HandleFunc("POST /users", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintln(w, "create user")
+	})
+
+	fmt.Println("server listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 查询用户
+curl -i http://localhost:8080/users
+
+# 创建用户
+curl -i -X POST http://localhost:8080/users</code></pre>
+          </div>
+        </section>
+
+        <section id="step4" data-search>
+          <p class="step-label">Step 4 · 新概念：查询参数</p>
+          <h2>4. 查询参数</h2>
+          <p><strong>What：</strong>查询参数是 URL 中 <code>?</code> 后面的键值，例如 <code>/search?q=go</code>。</p>
+          <p><strong>Why：</strong>查询参数适合表达过滤、排序、分页和搜索关键词。</p>
+          <p><strong>Principle：</strong><code>r.URL.Query()</code> 返回 <code>url.Values</code>，可以用 <code>Get</code> 读取单个参数。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
+		// 从 URL 查询参数中读取 q。
+		keyword := r.URL.Query().Get("q")
+		if keyword == "" {
+			http.Error(w, "missing query parameter: q", http.StatusBadRequest)
+			return
+		}
+
+		fmt.Fprintf(w, "search keyword: %s\n", keyword)
+	})
+
+	fmt.Println("server listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 带查询参数
+curl -i "http://localhost:8080/search?q=golang"
+
+# 不带查询参数，会返回 400
+curl -i "http://localhost:8080/search"</code></pre>
+          </div>
+        </section>
+
+        <section id="step5" data-search>
+          <p class="step-label">Step 5 · 新概念：路径参数</p>
+          <h2>5. 路径参数</h2>
+          <p><strong>What：</strong>路径参数把 URL 的一部分当成变量，例如 <code>/users/42</code> 里的 <code>42</code>。</p>
+          <p><strong>Why：</strong>路径参数适合定位某个具体资源。</p>
+          <p><strong>Principle：</strong>Go 1.22+ 的 <code>ServeMux</code> 支持 <code>{name}</code> 路径变量，并通过 <code>r.PathValue("name")</code> 读取。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+
+	// {id} 是路径参数，匹配 /users/1、/users/abc 等路径。
+	mux.HandleFunc("GET /users/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		fmt.Fprintf(w, "user id: %s\n", id)
+	})
+
+	fmt.Println("server listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 读取路径参数 id
+curl http://localhost:8080/users/42</code></pre>
+          </div>
+        </section>
+
+        <section id="step6" data-search>
+          <p class="step-label">Step 6 · 新概念：状态码与 Header</p>
+          <h2>6. 状态码与 Header</h2>
+          <p><strong>What：</strong>状态码说明请求结果，Header 说明响应元信息。</p>
+          <p><strong>Why：</strong>客户端不能只看响应文本，必须通过状态码和 Header 理解服务端意图。</p>
+          <p><strong>Principle：</strong>先设置 Header，再调用 <code>WriteHeader</code> 或写响应体。第一次写响应体会隐式发送 <code>200 OK</code>。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /users", func(w http.ResponseWriter, r *http.Request) {
+		// Header 必须在 WriteHeader 或写 body 前设置。
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("X-Request-Handled-By", "net-http-demo")
+
+		// 创建资源通常返回 201 Created。
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintln(w, "user created")
+	})
+
+	fmt.Println("server listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># -i 会显示响应头和状态码
+curl -i -X POST http://localhost:8080/users</code></pre>
+          </div>
+        </section>
+
+        <section id="step7" data-search>
+          <p class="step-label">Step 7 · 新概念：JSON 响应</p>
+          <h2>7. JSON 响应</h2>
+          <p><strong>What：</strong>Web API 常用 JSON 作为响应格式。</p>
+          <p><strong>Why：</strong>JSON 能被前端、移动端、其他服务稳定解析，比纯文本更适合结构化数据。</p>
+          <p><strong>Principle：</strong>设置 <code>Content-Type: application/json</code>，然后用 <code>json.NewEncoder(w).Encode(value)</code> 写响应。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"encoding/json"
+	"net/http"
+)
+
+type User struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func main() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("GET /users/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// 读取路径参数，构造一个演示用户。
+		id := r.PathValue("id")
+		user := User{ID: 1, Name: "user-" + id}
+
+		// JSON API 应明确设置响应类型。
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(user)
+	})
+
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 请求 JSON 响应
+curl -i http://localhost:8080/users/42</code></pre>
+          </div>
+        </section>
+
+        <section id="step8" data-search>
+          <p class="step-label">Step 8 · 新概念：JSON 请求体</p>
+          <h2>8. JSON 请求体</h2>
+          <p><strong>What：</strong>请求体保存客户端提交的数据，例如创建用户时提交的 JSON。</p>
+          <p><strong>Why：</strong>复杂数据不适合放进 URL，应放在请求体里。</p>
+          <p><strong>Principle：</strong>使用 <code>json.NewDecoder(r.Body).Decode</code> 读取请求体，并用 <code>MaxBytesReader</code> 限制最大体积，避免大请求拖垮服务。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"encoding/json"
+	"net/http"
+)
+
+type CreateUserRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateUserResponse struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func main() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /users", func(w http.ResponseWriter, r *http.Request) {
+		// 限制请求体最大 1MB，防止客户端提交超大 body。
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		defer r.Body.Close()
+
+		var req CreateUserRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json body", http.StatusBadRequest)
+			return
+		}
+		if req.Name == "" {
+			http.Error(w, "name is required", http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(CreateUserResponse{ID: 1001, Name: req.Name})
+	})
+
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 提交 JSON 创建用户
+curl -i -X POST http://localhost:8080/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada"}'</code></pre>
+          </div>
+        </section>
+
+        <section id="step9" data-search>
+          <p class="step-label">Step 9 · 新概念：Handler 抽象</p>
+          <h2>9. Handler 抽象</h2>
+          <p><strong>What：</strong><code>http.Handler</code> 是一个接口，核心方法是 <code>ServeHTTP(ResponseWriter, *Request)</code>。</p>
+          <p><strong>Why：</strong>函数适合小例子，结构体 handler 适合真实项目，因为它可以保存依赖，例如数据库、服务对象、配置。</p>
+          <p><strong>Principle：</strong><code>http.HandlerFunc</code> 是一个适配器，把普通函数变成 <code>http.Handler</code>。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+type UserHandler struct {
+	// 真实项目里这里可以放 UserService、DB、Logger 等依赖。
+	prefix string
+}
+
+func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// 结构体方法实现 ServeHTTP 后，就是一个 http.Handler。
+	fmt.Fprintf(w, "%s users endpoint\n", h.prefix)
+}
+
+func main() {
+	mux := http.NewServeMux()
+
+	// mux.Handle 接收 http.Handler。
+	mux.Handle("GET /users", &UserHandler{prefix: "demo"})
+
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 请求结构体 handler
+curl http://localhost:8080/users</code></pre>
+          </div>
+        </section>
+
+        <section id="step10" data-search>
+          <p class="step-label">Step 10 · 新概念：中间件</p>
+          <h2>10. 中间件</h2>
+          <p><strong>What：</strong>中间件是包装 handler 的函数，通常签名是 <code>func(http.Handler) http.Handler</code>。</p>
+          <p><strong>Why：</strong>日志、认证、限流、CORS、链路追踪都不应该散落在每个业务 handler 里。</p>
+          <p><strong>Principle：</strong>中间件在调用 <code>next.ServeHTTP(w, r)</code> 前后插入通用逻辑。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+)
+
+func logging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// next 前记录开始时间。
+		start := time.Now()
+
+		// 调用下一个 handler。
+		next.ServeHTTP(w, r)
+
+		// next 后记录耗时。
+		log.Printf("%s %s cost=%s", r.Method, r.URL.Path, time.Since(start))
+	})
+}
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "hello with middleware")
+	})
+
+	// 用 logging 包装整个 mux。
+	if err := http.ListenAndServe(":8080", logging(mux)); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 请求接口，观察服务端终端里的日志
+curl http://localhost:8080/hello</code></pre>
+          </div>
+        </section>
+
+        <section id="step11" data-search>
+          <p class="step-label">Step 11 · 新概念：Request Context</p>
+          <h2>11. Context</h2>
+          <p><strong>What：</strong><code>r.Context()</code> 表示请求生命周期。</p>
+          <p><strong>Why：</strong>客户端断开连接、请求超时、服务关闭时，下游工作应该能及时停止。</p>
+          <p><strong>Principle：</strong>把 <code>r.Context()</code> 继续传给数据库、RPC、耗时函数；耗时函数用 <code>select</code> 监听 <code>ctx.Done()</code>。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+)
+
+func slowWork(ctx context.Context) error {
+	// 模拟一个耗时操作。
+	select {
+	case <-time.After(2 * time.Second):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /slow", func(w http.ResponseWriter, r *http.Request) {
+		// 给单个业务操作增加 500ms 预算。
+		ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+		defer cancel()
+
+		if err := slowWork(ctx); err != nil {
+			http.Error(w, "work canceled: "+err.Error(), http.StatusGatewayTimeout)
+			return
+		}
+
+		fmt.Fprintln(w, "slow work done")
+	})
+
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 这个请求会因为内部 500ms 超时而返回 504
+curl -i http://localhost:8080/slow</code></pre>
+          </div>
+        </section>
+
+        <section id="step12" data-search>
+          <p class="step-label">Step 12 · 新概念：http.Server 配置</p>
+          <h2>12. Server 配置</h2>
+          <p><strong>What：</strong><code>http.Server</code> 是可配置的服务端对象。</p>
+          <p><strong>Why：</strong>生产环境不应该直接裸用 <code>http.ListenAndServe</code>，因为你需要配置读写超时、空闲连接超时、路由器等。</p>
+          <p><strong>Principle：</strong><code>ListenAndServe</code> 是便捷函数；自定义 <code>http.Server</code> 能设置更多安全和稳定性参数。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "server configured")
+	})
+
+	server := &http.Server{
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadHeaderTimeout: 2 * time.Second,  // 限制读取请求头时间。
+		ReadTimeout:       5 * time.Second,  // 限制读取整个请求时间。
+		WriteTimeout:      10 * time.Second, // 限制写响应时间。
+		IdleTimeout:       60 * time.Second, // 限制 keep-alive 空闲时间。
+	}
+
+	fmt.Println("server listening on http://localhost:8080")
+	if err := server.ListenAndServe(); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 请求配置后的服务
+curl http://localhost:8080/hello</code></pre>
+          </div>
+        </section>
+
+        <section id="step13" data-search>
+          <p class="step-label">Step 13 · 新概念：优雅关闭</p>
+          <h2>13. 优雅关闭</h2>
+          <p><strong>What：</strong>优雅关闭是在收到退出信号后，停止接收新请求，并等待正在处理的请求完成。</p>
+          <p><strong>Why：</strong>直接杀进程可能中断正在执行的请求，造成部分写入、连接错误或用户体验问题。</p>
+          <p><strong>Principle：</strong><code>server.Shutdown(ctx)</code> 会关闭监听器、停止接收新连接，并等待现有请求完成，直到 context 超时。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "hello graceful shutdown")
+	})
+
+	server := &http.Server{
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+
+	// 在独立 goroutine 中启动服务，主 goroutine 用来监听退出信号。
+	go func() {
+		fmt.Println("server listening on http://localhost:8080")
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			panic(err)
+		}
+	}()
+
+	// 等待 Ctrl+C 或系统终止信号。
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	// 给正在处理的请求最多 5 秒完成时间。
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		panic(err)
+	}
+	fmt.Println("server stopped gracefully")
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 运行服务
+go run main.go
+
+# 请求接口
+curl http://localhost:8080/hello
+
+# 在服务终端按 Ctrl+C，观察优雅关闭日志</code></pre>
+          </div>
+        </section>
+
+        <section id="step14" data-search>
+          <p class="step-label">Step 14 · 新概念：httptest</p>
+          <h2>14. 测试 Handler</h2>
+          <p><strong>What：</strong><code>net/http/httptest</code> 用于在测试里构造请求和记录响应。</p>
+          <p><strong>Why：</strong>HTTP handler 是业务入口，必须能自动化测试，而不是每次手动 curl。</p>
+          <p><strong>Principle：</strong><code>httptest.NewRequest</code> 构造请求，<code>httptest.NewRecorder</code> 捕获响应。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"encoding/json"
+	"net/http"
+)
+
+type HealthResponse struct {
+	Status string `json:"status"`
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	// 测试目标：返回 JSON 健康检查结果。
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(HealthResponse{Status: "ok"})
+}
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", healthHandler)
+	_ = http.ListenAndServe(":8080", mux)
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main_test.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestHealthHandler(t *testing.T) {
+	// 构造一个 GET /health 请求。
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+
+	// Recorder 用来捕获 handler 写出的响应。
+	rec := httptest.NewRecorder()
+
+	// 直接调用 handler，不需要真正启动端口。
+	healthHandler(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	if !strings.Contains(rec.Body.String(), `"status":"ok"`) {
+		t.Fatalf("unexpected body: %s", rec.Body.String())
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell"># 运行测试
+go test ./...</code></pre>
+          </div>
+        </section>
+
+        <section id="mistakes" data-search>
+          <h2>常见错误</h2>
+          <div class="cards">
+            <div class="card">
+              <h3>裸用默认 mux</h3>
+              <p>小例子可以用 <code>http.HandleFunc</code>，真实项目更推荐显式创建 <code>http.NewServeMux()</code>，避免全局状态混乱。</p>
+            </div>
+            <div class="card">
+              <h3>先写 body 后设 Header</h3>
+              <p>第一次写响应体会发送默认状态码和 Header。Header 应在写 body 或 <code>WriteHeader</code> 前设置。</p>
+            </div>
+            <div class="card">
+              <h3>不限制请求体大小</h3>
+              <p>读取 JSON body 前使用 <code>http.MaxBytesReader</code>，否则恶意大请求可能占用大量内存或连接时间。</p>
+            </div>
+            <div class="card">
+              <h3>没有 Server 超时</h3>
+              <p>生产环境应配置 <code>ReadHeaderTimeout</code>、<code>ReadTimeout</code>、<code>WriteTimeout</code> 和 <code>IdleTimeout</code>。</p>
+            </div>
+            <div class="card">
+              <h3>忽略 Request.Context</h3>
+              <p>数据库、RPC、耗时函数都应接收并传递 <code>r.Context()</code>，让取消和超时能向下游传播。</p>
+            </div>
+            <div class="card">
+              <h3>缺少自动化测试</h3>
+              <p>handler 可以用 <code>httptest</code> 快速测试，不需要真正启动端口，反馈更快也更稳定。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="practice" data-search>
+          <h2>Practice：练习题</h2>
+          <div class="cards">
+            <div class="exercise">
+              <h3>1. Todo 列表</h3>
+              <p>实现 <code>GET /todos</code> 返回 JSON 数组，只用内存 slice 保存数据。</p>
+            </div>
+            <div class="exercise">
+              <h3>2. 创建 Todo</h3>
+              <p>实现 <code>POST /todos</code>，读取 JSON body，校验 title 必填，返回 201。</p>
+            </div>
+            <div class="exercise">
+              <h3>3. 查询 Todo</h3>
+              <p>实现 <code>GET /todos/{id}</code>，使用 <code>PathValue</code> 读取 id，不存在返回 404。</p>
+            </div>
+            <div class="exercise">
+              <h3>4. 日志中间件</h3>
+              <p>输出方法、路径、耗时，并给每个请求附加一个 request id。</p>
+            </div>
+            <div class="exercise">
+              <h3>5. 超时保护</h3>
+              <p>写一个 <code>/slow</code> 接口，内部任务 2 秒，但 handler 只给它 300ms 预算。</p>
+            </div>
+            <div class="exercise">
+              <h3>6. Handler 测试</h3>
+              <p>用 <code>httptest</code> 测试 Todo 的创建接口，断言状态码和 JSON body。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="interview" data-search>
+          <h2>Interview Questions：面试题</h2>
+
+          <details open>
+            <summary>1. http.Handler 和 http.HandlerFunc 有什么区别？</summary>
+            <div>
+              <p><code>http.Handler</code> 是接口，要求实现 <code>ServeHTTP</code>。<code>http.HandlerFunc</code> 是函数类型，并实现了 <code>ServeHTTP</code>，所以普通函数可以被适配成 handler。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>2. 为什么生产环境不建议只用 http.ListenAndServe？</summary>
+            <div>
+              <p>便捷函数无法配置完整的超时策略。生产环境应使用 <code>http.Server</code>，配置 <code>ReadHeaderTimeout</code>、<code>ReadTimeout</code>、<code>WriteTimeout</code>、<code>IdleTimeout</code>，并实现优雅关闭。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>3. WriteHeader 和 Write 的顺序有什么讲究？</summary>
+            <div>
+              <p>Header 应先设置。<code>WriteHeader</code> 会发送状态码；如果先调用 <code>Write</code>，Go 会隐式发送 <code>200 OK</code>，之后再改状态码就无效了。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>4. Request.Context 在 HTTP 服务里有什么用？</summary>
+            <div>
+              <p>它表示请求生命周期。客户端断开、服务关闭或上游取消时，context 会被取消。下游数据库、RPC 和耗时函数应该接收它，以便及时停止无意义工作。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>5. 中间件的本质是什么？</summary>
+            <div>
+              <p>中间件是对 <code>http.Handler</code> 的包装函数，典型签名是 <code>func(http.Handler) http.Handler</code>。它通过调用 <code>next.ServeHTTP</code> 把请求传给下一个 handler。</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>6. 如何测试 HTTP handler？</summary>
+            <div>
+              <p>使用 <code>net/http/httptest</code>。<code>httptest.NewRequest</code> 构造请求，<code>httptest.NewRecorder</code> 捕获响应，然后直接调用 handler 并断言状态码、Header 和 body。</p>
+            </div>
+          </details>
+        </section>
+
+        <section id="summary" data-search>
+          <h2>总结</h2>
+          <p>这套螺旋式路径可以压缩为一条成长线：先会启动服务，再会分发请求，然后会读输入、写输出，接着用 handler 和 middleware 管理结构，最后补上 context、server timeout、优雅关闭和测试。</p>
+          <div class="callout">
+            <h3>最终口诀</h3>
+            <p><strong>Handler 是入口，Request 是输入，ResponseWriter 是输出，ServeMux 是分发，Server 是生产边界，Context 是生命周期。</strong></p>
+          </div>
+          <h3>官方参考</h3>
+          <ul>
+            <li><a href="https://pkg.go.dev/net/http">Go 标准库 net/http 文档</a></li>
+            <li><a href="https://pkg.go.dev/net/http/httptest">Go 标准库 net/http/httptest 文档</a></li>
+            <li><a href="https://go.dev/doc/effective_go">Effective Go</a></li>
+          </ul>
+        </section>
+      </article>
+
+      <p class="no-results" id="noResults">没有找到匹配章节。试试搜索 “JSON”、“Context”、“Shutdown” 或 “httptest”。</p>
+
+      <footer>
+        <p>本教程为单文件离线 HTML，按 go-master skill 的深色主题与教学结构生成。建议按步骤复制代码运行，不要跳过 curl 验证。</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const progressBar = document.getElementById("progressBar");
+    const searchInput = document.getElementById("searchInput");
+    const noResults = document.getElementById("noResults");
+    const sections = [...document.querySelectorAll("[data-search]")];
+    const navLinks = [...document.querySelectorAll("nav a")];
+    const expandBtn = document.getElementById("expandBtn");
+    const expandBtnMobile = document.getElementById("expandBtnMobile");
+    const menuBtn = document.getElementById("menuBtn");
+    const topBtn = document.getElementById("topBtn");
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function highlight(code, lang) {
+      let html = escapeHtml(code);
+      html = html.replace(/("[^"\n]*"|`[^`]*`|'[^'\n]*')/g, '<span class="tok-string">$1</span>');
+      html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-number">$1</span>');
+
+      if (lang === "go") {
+        html = html.replace(/(\/\/.*)$/gm, '<span class="tok-comment">$1</span>');
+        html = html.replace(/\b(package|import|func|type|struct|interface|return|defer|go|select|case|for|if|else|var|const|range|switch)\b/g, '<span class="tok-keyword">$1</span>');
+        html = html.replace(/\b(http|json|context|time|fmt|log|errors|os|signal|syscall|httptest|testing|strings)\b/g, '<span class="tok-type">$1</span>');
+        html = html.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\(/g, '<span class="tok-function">$1</span>(');
+      }
+
+      if (lang === "shell") {
+        html = html.replace(/^(#.*)$/gm, '<span class="tok-comment">$1</span>');
+        html = html.replace(/\b(mkdir|cd|go|curl)\b/g, '<span class="tok-keyword">$1</span>');
+      }
+
+      return html;
+    }
+
+    function prepareCode() {
+      document.querySelectorAll("pre code").forEach((block) => {
+        const raw = block.textContent;
+        block.dataset.raw = raw;
+        block.innerHTML = highlight(raw, block.dataset.lang || "");
+      });
+
+      document.querySelectorAll(".copy-btn").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const code = button.closest(".code-shell").querySelector("code").dataset.raw;
+          await navigator.clipboard.writeText(code);
+          button.textContent = "已复制";
+          setTimeout(() => {
+            button.textContent = "复制";
+          }, 1200);
+        });
+      });
+    }
+
+    function updateProgress() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const percent = max <= 0 ? 0 : (window.scrollY / max) * 100;
+      progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
+
+    function updateActiveNav() {
+      let activeId = "intro";
+      const probe = window.scrollY + 120;
+      document.querySelectorAll("header[id], section[id]").forEach((node) => {
+        if (node.offsetTop <= probe) activeId = node.id;
+      });
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === `#${activeId}`);
+      });
+    }
+
+    function filterContent() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      sections.forEach((section) => {
+        const matched = !query || section.textContent.toLowerCase().includes(query);
+        section.classList.toggle("hidden-by-search", !matched);
+        if (matched) visibleCount += 1;
+      });
+
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+
+    function toggleDetails() {
+      const details = [...document.querySelectorAll("details")];
+      const shouldOpen = details.some((item) => !item.open);
+      details.forEach((item) => {
+        item.open = shouldOpen;
+      });
+      expandBtn.textContent = shouldOpen ? "收起全部" : "展开全部";
+      expandBtnMobile.textContent = shouldOpen ? "收起" : "展开";
+    }
+
+    prepareCode();
+    updateProgress();
+    updateActiveNav();
+
+    window.addEventListener("scroll", () => {
+      updateProgress();
+      updateActiveNav();
+    }, { passive: true });
+
+    searchInput.addEventListener("input", filterContent);
+    expandBtn.addEventListener("click", toggleDetails);
+    expandBtnMobile.addEventListener("click", toggleDetails);
+    menuBtn.addEventListener("click", () => document.body.classList.toggle("nav-open"));
+    topBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    navLinks.forEach((link) => {
+      link.addEventListener("click", () => document.body.classList.remove("nav-open"));
+    });
+  </script>
+</body>
+</html>
