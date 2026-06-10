@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Go net/http 螺旋式新手教程</title>
+  <title>Go net/http 小白螺旋式教程 - 嚼碎版</title>
   <style>
     :root {
       color-scheme: dark;
@@ -20,7 +20,7 @@
       --code-bg: #0b1017;
       --shadow: 0 20px 54px rgba(0, 0, 0, 0.34);
       --radius: 8px;
-      --sidebar: 318px;
+      --sidebar: 326px;
       --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
@@ -37,7 +37,7 @@
       margin: 0;
       color: var(--text);
       background:
-        radial-gradient(circle at top right, rgba(88, 166, 255, 0.16), transparent 420px),
+        radial-gradient(circle at top right, rgba(88, 166, 255, 0.15), transparent 430px),
         linear-gradient(180deg, #0d1117 0%, #10161f 100%);
       font-family: var(--sans);
       line-height: 1.72;
@@ -192,7 +192,7 @@
 
     main {
       width: 100%;
-      max-width: 1160px;
+      max-width: 1180px;
       padding: 42px clamp(18px, 5vw, 64px) 76px;
     }
 
@@ -214,7 +214,7 @@
     }
 
     h1 {
-      max-width: 920px;
+      max-width: 960px;
       margin: 18px 0 14px;
       font-size: clamp(2.05rem, 4vw, 4.35rem);
       line-height: 1.04;
@@ -222,7 +222,7 @@
     }
 
     .lead {
-      max-width: 880px;
+      max-width: 900px;
       margin: 0;
       color: var(--muted);
       font-size: 1.08rem;
@@ -327,6 +327,11 @@
     .callout {
       border-left: 4px solid var(--accent);
       background: linear-gradient(90deg, rgba(88, 166, 255, 0.12), var(--card));
+    }
+
+    .teacher {
+      border-left-color: var(--green);
+      background: linear-gradient(90deg, rgba(126, 231, 135, 0.12), var(--card));
     }
 
     .warning {
@@ -454,6 +459,11 @@
       font-weight: 800;
     }
 
+    .tiny {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
     .hidden-by-search {
       display: none;
     }
@@ -536,19 +546,19 @@
 
   <div class="mobile-bar">
     <button id="menuBtn" aria-label="打开目录">目录</button>
-    <strong>net/http</strong>
+    <strong>net/http 嚼碎版</strong>
     <button id="expandBtnMobile" aria-label="展开所有章节">展开</button>
   </div>
 
   <div class="layout">
     <aside>
       <div class="brand">
-        <strong>Go net/http 螺旋式教程</strong>
-        <span>每次只加一个新概念，每一步代码都能跑</span>
+        <strong>Go net/http 小白闯关</strong>
+        <span>每次只加一个概念，代码都能跑，脑子不冒烟</span>
       </div>
 
       <label class="search">
-        <input id="searchInput" type="search" placeholder="搜索：路由、JSON、Shutdown..." autocomplete="off">
+        <input id="searchInput" type="search" placeholder="搜索：路由、JSON、中间件..." autocomplete="off">
       </label>
 
       <div class="sidebar-actions">
@@ -557,25 +567,27 @@
       </div>
 
       <nav aria-label="课程目录">
-        <h2>目录</h2>
-        <a href="#intro">课程介绍</a>
-        <a href="#setup">准备工作</a>
+        <h2>学习路线</h2>
+        <a href="#intro">开场：HTTP 是啥</a>
+        <a href="#map">学习地图</a>
+        <a href="#setup">准备环境</a>
         <a href="#step1">1. 最小服务器</a>
-        <a href="#step2">2. 多路由</a>
-        <a href="#step3">3. 请求方法</a>
-        <a href="#step4">4. 查询参数</a>
-        <a href="#step5">5. 路径参数</a>
-        <a href="#step6">6. 状态码与 Header</a>
-        <a href="#step7">7. JSON 响应</a>
-        <a href="#step8">8. JSON 请求体</a>
-        <a href="#step9">9. Handler 抽象</a>
-        <a href="#step10">10. 中间件</a>
-        <a href="#step11">11. Context</a>
-        <a href="#step12">12. Server 配置</a>
-        <a href="#step13">13. 优雅关闭</a>
-        <a href="#step14">14. 测试 Handler</a>
-        <a href="#mistakes">常见错误</a>
-        <a href="#practice">练习</a>
+        <a href="#step2">2. handler 三件套</a>
+        <a href="#step3">3. 多路由</a>
+        <a href="#step4">4. GET / POST</a>
+        <a href="#step5">5. 查询参数</a>
+        <a href="#step6">6. 路径参数</a>
+        <a href="#step7">7. Header 与状态码</a>
+        <a href="#step8">8. JSON 响应</a>
+        <a href="#step9">9. JSON 请求体</a>
+        <a href="#step10">10. Handler 接口</a>
+        <a href="#step11">11. 中间件</a>
+        <a href="#step12">12. Context 超时</a>
+        <a href="#step13">13. http.Server</a>
+        <a href="#step14">14. 优雅关闭</a>
+        <a href="#step15">15. httptest</a>
+        <a href="#mistakes">常见坑</a>
+        <a href="#practice">练习项目</a>
         <a href="#interview">面试题</a>
         <a href="#summary">总结</a>
       </nav>
@@ -584,53 +596,74 @@
     <main>
       <article id="content">
         <header class="hero" id="intro">
-          <span class="tag">Go Master Skill · net/http · Spiral Tutorial</span>
-          <h1>Go net/http 知识点：螺旋式新手教程</h1>
-          <p class="lead">本教程不一次性塞满概念，而是像搭积木一样学习：第 1 步只会启动服务器，第 2 步只增加路由，第 3 步只增加请求方法。每一步代码都能独立运行，让你在稳定的小胜利里把 <code>net/http</code> 真正吃透。</p>
+          <span class="tag">Go Master · 高级讲师嚼碎版 · 标准库 net/http</span>
+          <h1>Go net/http：给小白的螺旋式闯关教程</h1>
+          <p class="lead">把 HTTP 服务想成一家小店：浏览器或 curl 是顾客，请求是点菜单，handler 是店员，ResponseWriter 是出餐口，ServeMux 是前台分流，http.Server 是店长。我们不一口吞完整个后端宇宙，每次只加一个新概念，跑起来，再往上叠。</p>
           <div class="meta-grid">
-            <div class="stat"><b>14</b><span>可运行小步骤</span></div>
-            <div class="stat"><b>1</b><span>每步只加一个新概念</span></div>
-            <div class="stat"><b>0</b><span>外部 Web 框架依赖</span></div>
-            <div class="stat"><b>生产级</b><span>超时、关闭、测试都覆盖</span></div>
+            <div class="stat"><b>15 步</b><span>一步一概念，不搞知识轰炸</span></div>
+            <div class="stat"><b>可运行</b><span>每段 Go 代码都能复制执行</span></div>
+            <div class="stat"><b>标准库</b><span>不用 Gin，先练内功</span></div>
+            <div class="stat"><b>生产感</b><span>超时、关闭、测试都补齐</span></div>
           </div>
         </header>
 
+        <section id="map" data-search>
+          <h2>学习地图：先把脑子里的雾吹散</h2>
+          <p><strong>What：</strong><code>net/http</code> 是 Go 标准库提供的 HTTP 客户端和服务端工具。本教程主要讲服务端，也就是“怎么写接口”。</p>
+          <p><strong>Why：</strong>你以后用 Gin、Echo、Kratos，底层仍然离不开 <code>http.Handler</code>、<code>Request</code>、<code>ResponseWriter</code>、<code>Context</code>。先懂标准库，框架就像换个更顺手的工具箱。</p>
+          <p><strong>Problem：</strong>很多小白一上来就背代码：<code>http.HandleFunc</code>、<code>ListenAndServe</code>。能跑，但不知道谁在接客、谁在派单、谁在写响应。出了 bug，就像在厨房里找 Wi-Fi 密码。</p>
+
+          <div class="cards">
+            <div class="card">
+              <h3>第一圈：能跑</h3>
+              <p>启动服务、注册路由、curl 请求。目标是先有成就感。</p>
+            </div>
+            <div class="card">
+              <h3>第二圈：能交流</h3>
+              <p>读 query、读 path、读 JSON body，再返回 JSON。</p>
+            </div>
+            <div class="card">
+              <h3>第三圈：像项目</h3>
+              <p>handler 抽象、中间件、context、server 配置、优雅关闭和测试。</p>
+            </div>
+          </div>
+
+          <div class="callout teacher">
+            <h3>讲师悄悄话</h3>
+            <p>学 HTTP 不要急着背“RESTful、网关、微服务”这些大词。先把一个请求从进门到出门的路线看清楚：<code>Client → Server → ServeMux → Handler → ResponseWriter</code>。这条线清楚了，后面突然就亮了。</p>
+          </div>
+        </section>
+
         <section id="setup" data-search>
-          <h2>准备工作</h2>
-          <p><strong>What：</strong><code>net/http</code> 是 Go 标准库里的 HTTP 客户端和服务端包。本教程聚焦服务端。</p>
-          <p><strong>Why：</strong>Gin、Echo、Fiber 等框架底层都绕不开 HTTP 基础。先学标准库，后面用框架会更稳。</p>
-          <p><strong>Problem：</strong>很多新手直接上框架，能写接口但不理解 handler、request、response、context、server timeout，生产排错时会很吃力。</p>
+          <h2>准备环境：今天只需要 Go 和 curl</h2>
+          <p><strong>What：</strong>我们用一个目录反复写 <code>main.go</code>。每一关的代码都是完整文件，可以直接覆盖运行。</p>
+          <p><strong>Why：</strong>小白最怕“这一段代码应该放哪”。本教程不玩拼图，每一步都给完整代码。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>shell</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 创建一个学习目录
+            <pre><code data-lang="shell"># 创建学习目录
 mkdir go-net-http-demo
 cd go-net-http-demo
 
-# 初始化 Go module
+# 初始化模块，后面 go test 会用到它
 go mod init example.com/net-http-demo
 
-# 后续每一步都把代码保存为 main.go，然后运行
+# 每一关都把代码保存成 main.go
 go run main.go</code></pre>
           </div>
 
-          <div class="toc-box">
-            <h3>螺旋式学习规则</h3>
-            <ol>
-              <li>每一步只新增一个概念。</li>
-              <li>每一步都能独立复制为 <code>main.go</code> 运行。</li>
-              <li>每一步都用 <code>curl</code> 验证结果。</li>
-              <li>先理解为什么，再看代码怎么写。</li>
-            </ol>
+          <div class="callout warning">
+            <h3>端口被占用怎么办</h3>
+            <p>如果提示 <code>bind: address already in use</code>，说明 8080 已经有人占着。把代码里的 <code>:8080</code> 改成 <code>:8081</code>，或者先停掉上一个 <code>go run main.go</code>。</p>
           </div>
         </section>
 
         <section id="step1" data-search>
-          <p class="step-label">Step 1 · 新概念：最小 HTTP 服务器</p>
-          <h2>1. 最小服务器</h2>
-          <p><strong>What：</strong>一个 HTTP 服务至少需要一个 handler 和一个监听端口。</p>
-          <p><strong>Why：</strong>handler 是请求进入业务代码的入口，<code>ListenAndServe</code> 负责监听端口并接收连接。</p>
-          <p><strong>Principle：</strong><code>http.HandleFunc</code> 把路径注册到默认路由表，<code>http.ListenAndServe</code> 使用默认路由表处理请求。</p>
+          <p class="step-label">Step 1 · 新概念：服务器会“听端口”</p>
+          <h2>1. 最小服务器：让 Go 开门营业</h2>
+          <p><strong>What：</strong>HTTP 服务器就是一个一直等请求的程序。它监听某个端口，比如 <code>8080</code>。</p>
+          <p><strong>Why：</strong>没有服务器，浏览器或 curl 就像敲一扇不存在的门，当然没人回应。</p>
+          <p><strong>Principle：</strong><code>http.ListenAndServe(":8080", nil)</code> 会启动服务。第二个参数是 handler；这里传 <code>nil</code> 表示使用默认路由器。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -642,14 +675,14 @@ import (
 )
 
 func main() {
-	// 注册根路径处理函数：浏览器或 curl 访问 / 时会执行这里。
+	// 当用户访问 / 时，执行这个函数。
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// ResponseWriter 用来写响应内容。
-		fmt.Fprintln(w, "hello net/http")
+		// w 是响应出口，往里面写什么，客户端就收到什么。
+		fmt.Fprintln(w, "hello, Go HTTP")
 	})
 
-	// 启动 HTTP 服务，监听本机 8080 端口。
-	fmt.Println("server listening on http://localhost:8080")
+	fmt.Println("open: http://localhost:8080")
+	// :8080 表示监听本机 8080 端口。
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
@@ -658,23 +691,28 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 运行服务
+            <pre><code data-lang="shell"># 终端 1：启动服务
 go run main.go
 
-# 新开一个终端请求接口
+# 终端 2：发请求
 curl http://localhost:8080/
 
 # 预期输出
-# hello net/http</code></pre>
+# hello, Go HTTP</code></pre>
+          </div>
+
+          <div class="callout teacher">
+            <h3>小白脑内画面</h3>
+            <p><code>ListenAndServe</code> 像把店门打开，<code>HandleFunc</code> 像告诉店员：“有人问 /，你就回答 hello”。</p>
           </div>
         </section>
 
         <section id="step2" data-search>
-          <p class="step-label">Step 2 · 新概念：多个路由</p>
-          <h2>2. 多路由</h2>
-          <p><strong>What：</strong>路由负责把不同 URL 路径分发到不同 handler。</p>
-          <p><strong>Why：</strong>真实服务通常有多个接口，例如健康检查、用户接口、订单接口。</p>
-          <p><strong>Principle：</strong><code>ServeMux</code> 是标准库路由器。这里开始显式创建 <code>mux</code>，不再依赖默认全局路由表。</p>
+          <p class="step-label">Step 2 · 新概念：handler 三件套</p>
+          <h2>2. handler 三件套：w、r、函数本体</h2>
+          <p><strong>What：</strong>handler 是处理请求的函数。它通常长这样：<code>func(w http.ResponseWriter, r *http.Request)</code>。</p>
+          <p><strong>Why：</strong>请求来了，总得有人看请求、算结果、写响应。handler 就是那位干活的同学。</p>
+          <p><strong>Principle：</strong><code>r</code> 是输入，包含方法、路径、Header、Body；<code>w</code> 是输出，用来写状态码、Header、Body。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -685,22 +723,17 @@ import (
 	"net/http"
 )
 
+func hello(w http.ResponseWriter, r *http.Request) {
+	// r.Method 是请求方法，例如 GET。
+	// r.URL.Path 是请求路径，例如 /hello。
+	fmt.Fprintf(w, "method=%s path=%s\n", r.Method, r.URL.Path)
+}
+
 func main() {
-	// 显式创建路由器，避免大型项目里使用全局默认路由表。
-	mux := http.NewServeMux()
+	http.HandleFunc("/hello", hello)
 
-	// 健康检查路由。
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "ok")
-	})
-
-	// 用户路由。
-	mux.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "users list")
-	})
-
-	fmt.Println("server listening on http://localhost:8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	fmt.Println("open: http://localhost:8080/hello")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
 }</code></pre>
@@ -708,23 +741,61 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 运行服务
-go run main.go
+            <pre><code data-lang="shell">curl http://localhost:8080/hello
 
-# 请求健康检查
-curl http://localhost:8080/health
-
-# 请求用户列表
-curl http://localhost:8080/users</code></pre>
+# 预期输出
+# method=GET path=/hello</code></pre>
           </div>
         </section>
 
         <section id="step3" data-search>
-          <p class="step-label">Step 3 · 新概念：请求方法</p>
-          <h2>3. 请求方法</h2>
-          <p><strong>What：</strong>HTTP 方法描述动作，例如 <code>GET</code> 查询资源，<code>POST</code> 创建资源。</p>
-          <p><strong>Why：</strong>同一个路径可能要根据方法做不同事情，比如 <code>GET /users</code> 查询，<code>POST /users</code> 创建。</p>
-          <p><strong>Principle：</strong>标准库的 <code>Request.Method</code> 保存请求方法。Go 1.22 以后，<code>ServeMux</code> 也支持在 pattern 里写方法，例如 <code>GET /users</code>。</p>
+          <p class="step-label">Step 3 · 新概念：ServeMux 是分流前台</p>
+          <h2>3. 多路由：不同路径找不同人</h2>
+          <p><strong>What：</strong>路由把不同 URL 分配给不同 handler。</p>
+          <p><strong>Why：</strong>真实项目不可能只有一个接口。健康检查、用户、订单、登录，都得各走各的门。</p>
+          <p><strong>Principle：</strong><code>http.NewServeMux()</code> 创建一个路由器。<code>mux.HandleFunc</code> 注册路径和处理函数。</p>
+
+          <div class="code-shell">
+            <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="go">package main
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	// 显式创建 mux，项目里比使用默认全局 mux 更清晰。
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "ok")
+	})
+
+	mux.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "users list")
+	})
+
+	fmt.Println("open: http://localhost:8080/health")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		panic(err)
+	}
+}</code></pre>
+          </div>
+
+          <div class="code-shell">
+            <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
+            <pre><code data-lang="shell">curl http://localhost:8080/health
+curl http://localhost:8080/users</code></pre>
+          </div>
+        </section>
+
+        <section id="step4" data-search>
+          <p class="step-label">Step 4 · 新概念：HTTP Method 是动作</p>
+          <h2>4. GET / POST：同一个资源，不同动作</h2>
+          <p><strong>What：</strong><code>GET</code> 常用于查询，<code>POST</code> 常用于创建。</p>
+          <p><strong>Why：</strong>路径像名词，方法像动词。<code>/users</code> 是“用户”，<code>GET</code> 是“看用户”，<code>POST</code> 是“创建用户”。</p>
+          <p><strong>Principle：</strong>Go 1.22+ 的 <code>ServeMux</code> 支持把方法写进 pattern，例如 <code>GET /users</code>。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -738,18 +809,16 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	// Go 1.22+ 的 ServeMux pattern 可以包含 HTTP 方法。
 	mux.HandleFunc("GET /users", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "list users")
 	})
 
-	// 同一个路径，不同方法，映射到不同处理逻辑。
 	mux.HandleFunc("POST /users", func(w http.ResponseWriter, r *http.Request) {
+		// 创建成功通常返回 201。
 		w.WriteHeader(http.StatusCreated)
 		fmt.Fprintln(w, "create user")
 	})
 
-	fmt.Println("server listening on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		panic(err)
 	}
@@ -758,20 +827,17 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 查询用户
-curl -i http://localhost:8080/users
-
-# 创建用户
+            <pre><code data-lang="shell">curl -i http://localhost:8080/users
 curl -i -X POST http://localhost:8080/users</code></pre>
           </div>
         </section>
 
-        <section id="step4" data-search>
-          <p class="step-label">Step 4 · 新概念：查询参数</p>
-          <h2>4. 查询参数</h2>
-          <p><strong>What：</strong>查询参数是 URL 中 <code>?</code> 后面的键值，例如 <code>/search?q=go</code>。</p>
-          <p><strong>Why：</strong>查询参数适合表达过滤、排序、分页和搜索关键词。</p>
-          <p><strong>Principle：</strong><code>r.URL.Query()</code> 返回 <code>url.Values</code>，可以用 <code>Get</code> 读取单个参数。</p>
+        <section id="step5" data-search>
+          <p class="step-label">Step 5 · 新概念：Query 是问问题的小纸条</p>
+          <h2>5. 查询参数：/search?q=go</h2>
+          <p><strong>What：</strong>查询参数是 URL 中 <code>?</code> 后面的内容，比如 <code>q=go</code>。</p>
+          <p><strong>Why：</strong>搜索、分页、排序、过滤都适合用查询参数。它们是在问：“我要哪一批数据？”</p>
+          <p><strong>Principle：</strong><code>r.URL.Query().Get("q")</code> 读取参数，不存在时返回空字符串。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -786,17 +852,16 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
-		// 从 URL 查询参数中读取 q。
-		keyword := r.URL.Query().Get("q")
-		if keyword == "" {
-			http.Error(w, "missing query parameter: q", http.StatusBadRequest)
+		// 读取 ?q=xxx 中的 q。
+		q := r.URL.Query().Get("q")
+		if q == "" {
+			http.Error(w, "missing q", http.StatusBadRequest)
 			return
 		}
 
-		fmt.Fprintf(w, "search keyword: %s\n", keyword)
+		fmt.Fprintf(w, "you searched: %s\n", q)
 	})
 
-	fmt.Println("server listening on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		panic(err)
 	}
@@ -805,20 +870,17 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 带查询参数
-curl -i "http://localhost:8080/search?q=golang"
-
-# 不带查询参数，会返回 400
+            <pre><code data-lang="shell">curl -i "http://localhost:8080/search?q=go"
 curl -i "http://localhost:8080/search"</code></pre>
           </div>
         </section>
 
-        <section id="step5" data-search>
-          <p class="step-label">Step 5 · 新概念：路径参数</p>
-          <h2>5. 路径参数</h2>
-          <p><strong>What：</strong>路径参数把 URL 的一部分当成变量，例如 <code>/users/42</code> 里的 <code>42</code>。</p>
-          <p><strong>Why：</strong>路径参数适合定位某个具体资源。</p>
-          <p><strong>Principle：</strong>Go 1.22+ 的 <code>ServeMux</code> 支持 <code>{name}</code> 路径变量，并通过 <code>r.PathValue("name")</code> 读取。</p>
+        <section id="step6" data-search>
+          <p class="step-label">Step 6 · 新概念：PathValue 是门牌号</p>
+          <h2>6. 路径参数：/users/{id}</h2>
+          <p><strong>What：</strong>路径参数把 URL 的某一段当变量，例如 <code>/users/42</code> 的 <code>42</code>。</p>
+          <p><strong>Why：</strong>查询具体资源时，路径参数比 query 更自然：<code>/users/42</code> 就像“42 号用户”。</p>
+          <p><strong>Principle：</strong>Go 1.22+ 支持 <code>{id}</code> pattern，用 <code>r.PathValue("id")</code> 读取。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -832,13 +894,12 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	// {id} 是路径参数，匹配 /users/1、/users/abc 等路径。
 	mux.HandleFunc("GET /users/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// id 来自路径中的 {id}。
 		id := r.PathValue("id")
-		fmt.Fprintf(w, "user id: %s\n", id)
+		fmt.Fprintf(w, "user id is %s\n", id)
 	})
 
-	fmt.Println("server listening on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		panic(err)
 	}
@@ -847,17 +908,16 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 读取路径参数 id
-curl http://localhost:8080/users/42</code></pre>
+            <pre><code data-lang="shell">curl http://localhost:8080/users/42</code></pre>
           </div>
         </section>
 
-        <section id="step6" data-search>
-          <p class="step-label">Step 6 · 新概念：状态码与 Header</p>
-          <h2>6. 状态码与 Header</h2>
-          <p><strong>What：</strong>状态码说明请求结果，Header 说明响应元信息。</p>
-          <p><strong>Why：</strong>客户端不能只看响应文本，必须通过状态码和 Header 理解服务端意图。</p>
-          <p><strong>Principle：</strong>先设置 Header，再调用 <code>WriteHeader</code> 或写响应体。第一次写响应体会隐式发送 <code>200 OK</code>。</p>
+        <section id="step7" data-search>
+          <p class="step-label">Step 7 · 新概念：状态码和 Header 是说明书</p>
+          <h2>7. Header 与状态码：别只会写 body</h2>
+          <p><strong>What：</strong>状态码说明结果，Header 说明响应元信息，Body 才是正文。</p>
+          <p><strong>Why：</strong>客户端不是靠猜的。<code>201</code> 表示创建成功，<code>400</code> 表示请求有问题，<code>Content-Type</code> 表示 body 格式。</p>
+          <p><strong>Principle：</strong>先设置 Header，再调用 <code>WriteHeader</code>，最后写 body。顺序乱了，Go 会提前发默认 <code>200</code>。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -872,16 +932,17 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /users", func(w http.ResponseWriter, r *http.Request) {
-		// Header 必须在 WriteHeader 或写 body 前设置。
+		// 1. 先设置 Header。
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("X-Request-Handled-By", "net-http-demo")
+		w.Header().Set("X-Lesson", "headers-before-body")
 
-		// 创建资源通常返回 201 Created。
+		// 2. 再设置状态码。
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintln(w, "user created")
+
+		// 3. 最后写响应体。
+		fmt.Fprintln(w, "created")
 	})
 
-	fmt.Println("server listening on http://localhost:8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		panic(err)
 	}
@@ -890,17 +951,16 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># -i 会显示响应头和状态码
-curl -i -X POST http://localhost:8080/users</code></pre>
+            <pre><code data-lang="shell">curl -i -X POST http://localhost:8080/users</code></pre>
           </div>
         </section>
 
-        <section id="step7" data-search>
-          <p class="step-label">Step 7 · 新概念：JSON 响应</p>
-          <h2>7. JSON 响应</h2>
-          <p><strong>What：</strong>Web API 常用 JSON 作为响应格式。</p>
-          <p><strong>Why：</strong>JSON 能被前端、移动端、其他服务稳定解析，比纯文本更适合结构化数据。</p>
-          <p><strong>Principle：</strong>设置 <code>Content-Type: application/json</code>，然后用 <code>json.NewEncoder(w).Encode(value)</code> 写响应。</p>
+        <section id="step8" data-search>
+          <p class="step-label">Step 8 · 新概念：返回 JSON</p>
+          <h2>8. JSON 响应：接口开始像接口了</h2>
+          <p><strong>What：</strong>JSON 是 Web API 最常用的数据格式。</p>
+          <p><strong>Why：</strong>前端、移动端、其他后端服务都能轻松解析 JSON。纯文本适合打招呼，JSON 适合干活。</p>
+          <p><strong>Principle：</strong>结构体字段用 <code>json</code> tag 控制输出字段名，<code>json.NewEncoder(w).Encode</code> 写 JSON。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -920,11 +980,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /users/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// 读取路径参数，构造一个演示用户。
 		id := r.PathValue("id")
 		user := User{ID: 1, Name: "user-" + id}
 
-		// JSON API 应明确设置响应类型。
+		// 告诉客户端：我返回的是 JSON。
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(user)
 	})
@@ -937,17 +996,16 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 请求 JSON 响应
-curl -i http://localhost:8080/users/42</code></pre>
+            <pre><code data-lang="shell">curl -i http://localhost:8080/users/42</code></pre>
           </div>
         </section>
 
-        <section id="step8" data-search>
-          <p class="step-label">Step 8 · 新概念：JSON 请求体</p>
-          <h2>8. JSON 请求体</h2>
-          <p><strong>What：</strong>请求体保存客户端提交的数据，例如创建用户时提交的 JSON。</p>
-          <p><strong>Why：</strong>复杂数据不适合放进 URL，应放在请求体里。</p>
-          <p><strong>Principle：</strong>使用 <code>json.NewDecoder(r.Body).Decode</code> 读取请求体，并用 <code>MaxBytesReader</code> 限制最大体积，避免大请求拖垮服务。</p>
+        <section id="step9" data-search>
+          <p class="step-label">Step 9 · 新概念：读取 JSON Body</p>
+          <h2>9. JSON 请求体：客户端也能递菜单</h2>
+          <p><strong>What：</strong>请求体是客户端提交的正文。创建用户时，名字就适合放在 JSON body 里。</p>
+          <p><strong>Why：</strong>复杂数据不要塞 URL。URL 适合定位资源，Body 适合提交数据。</p>
+          <p><strong>Principle：</strong><code>json.NewDecoder(r.Body).Decode(&req)</code> 读取 JSON。读取前用 <code>http.MaxBytesReader</code> 限制大小，别让一个请求撑爆厨房。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -971,13 +1029,13 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /users", func(w http.ResponseWriter, r *http.Request) {
-		// 限制请求体最大 1MB，防止客户端提交超大 body。
+		// 最多读取 1MB 请求体，防止超大 body。
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		defer r.Body.Close()
 
 		var req CreateUserRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid json body", http.StatusBadRequest)
+			http.Error(w, "invalid json", http.StatusBadRequest)
 			return
 		}
 		if req.Name == "" {
@@ -998,19 +1056,22 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 提交 JSON 创建用户
+            <pre><code data-lang="shell">curl -i -X POST http://localhost:8080/users \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ada"}'
+
 curl -i -X POST http://localhost:8080/users \
   -H "Content-Type: application/json" \
-  -d '{"name":"Ada"}'</code></pre>
+  -d '{}'</code></pre>
           </div>
         </section>
 
-        <section id="step9" data-search>
-          <p class="step-label">Step 9 · 新概念：Handler 抽象</p>
-          <h2>9. Handler 抽象</h2>
-          <p><strong>What：</strong><code>http.Handler</code> 是一个接口，核心方法是 <code>ServeHTTP(ResponseWriter, *Request)</code>。</p>
-          <p><strong>Why：</strong>函数适合小例子，结构体 handler 适合真实项目，因为它可以保存依赖，例如数据库、服务对象、配置。</p>
-          <p><strong>Principle：</strong><code>http.HandlerFunc</code> 是一个适配器，把普通函数变成 <code>http.Handler</code>。</p>
+        <section id="step10" data-search>
+          <p class="step-label">Step 10 · 新概念：http.Handler 接口</p>
+          <h2>10. Handler 接口：项目开始长骨架</h2>
+          <p><strong>What：</strong><code>http.Handler</code> 是接口，只要求一个方法：<code>ServeHTTP(w, r)</code>。</p>
+          <p><strong>Why：</strong>函数适合小 demo。项目里 handler 往往需要依赖 service、logger、db，把它们放进结构体更清晰。</p>
+          <p><strong>Principle：</strong>结构体实现 <code>ServeHTTP</code>，就能被 <code>mux.Handle</code> 注册。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -1022,12 +1083,11 @@ import (
 )
 
 type UserHandler struct {
-	// 真实项目里这里可以放 UserService、DB、Logger 等依赖。
+	// 真实项目中这里可以放 service、db、logger。
 	prefix string
 }
 
 func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 结构体方法实现 ServeHTTP 后，就是一个 http.Handler。
 	fmt.Fprintf(w, "%s users endpoint\n", h.prefix)
 }
 
@@ -1045,17 +1105,16 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 请求结构体 handler
-curl http://localhost:8080/users</code></pre>
+            <pre><code data-lang="shell">curl http://localhost:8080/users</code></pre>
           </div>
         </section>
 
-        <section id="step10" data-search>
-          <p class="step-label">Step 10 · 新概念：中间件</p>
-          <h2>10. 中间件</h2>
-          <p><strong>What：</strong>中间件是包装 handler 的函数，通常签名是 <code>func(http.Handler) http.Handler</code>。</p>
-          <p><strong>Why：</strong>日志、认证、限流、CORS、链路追踪都不应该散落在每个业务 handler 里。</p>
-          <p><strong>Principle：</strong>中间件在调用 <code>next.ServeHTTP(w, r)</code> 前后插入通用逻辑。</p>
+        <section id="step11" data-search>
+          <p class="step-label">Step 11 · 新概念：中间件是统一拦截器</p>
+          <h2>11. 中间件：别把重复逻辑撒得到处都是</h2>
+          <p><strong>What：</strong>中间件是包装 handler 的函数，常见签名：<code>func(http.Handler) http.Handler</code>。</p>
+          <p><strong>Why：</strong>日志、鉴权、限流、恢复 panic、request id 都是“每个接口都可能需要”的逻辑，应该统一处理。</p>
+          <p><strong>Principle：</strong>在 <code>next.ServeHTTP(w, r)</code> 前后插入逻辑。前面像进门检查，后面像出门结账。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -1070,13 +1129,12 @@ import (
 
 func logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// next 前记录开始时间。
 		start := time.Now()
 
-		// 调用下一个 handler。
+		// 把请求交给下一个 handler。
 		next.ServeHTTP(w, r)
 
-		// next 后记录耗时。
+		// handler 结束后记录日志。
 		log.Printf("%s %s cost=%s", r.Method, r.URL.Path, time.Since(start))
 	})
 }
@@ -1084,10 +1142,10 @@ func logging(next http.Handler) http.Handler {
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "hello with middleware")
+		fmt.Fprintln(w, "hello middleware")
 	})
 
-	// 用 logging 包装整个 mux。
+	// logging 包住 mux，于是所有请求都会被记录。
 	if err := http.ListenAndServe(":8080", logging(mux)); err != nil {
 		panic(err)
 	}
@@ -1096,17 +1154,18 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 请求接口，观察服务端终端里的日志
-curl http://localhost:8080/hello</code></pre>
+            <pre><code data-lang="shell">curl http://localhost:8080/hello
+
+# 回到服务终端，看日志输出</code></pre>
           </div>
         </section>
 
-        <section id="step11" data-search>
-          <p class="step-label">Step 11 · 新概念：Request Context</p>
-          <h2>11. Context</h2>
-          <p><strong>What：</strong><code>r.Context()</code> 表示请求生命周期。</p>
-          <p><strong>Why：</strong>客户端断开连接、请求超时、服务关闭时，下游工作应该能及时停止。</p>
-          <p><strong>Principle：</strong>把 <code>r.Context()</code> 继续传给数据库、RPC、耗时函数；耗时函数用 <code>select</code> 监听 <code>ctx.Done()</code>。</p>
+        <section id="step12" data-search>
+          <p class="step-label">Step 12 · 新概念：Request.Context 是请求生命线</p>
+          <h2>12. Context 超时：别让慢任务霸占座位</h2>
+          <p><strong>What：</strong><code>r.Context()</code> 表示当前请求的生命周期。</p>
+          <p><strong>Why：</strong>客户端断开、上游超时、服务关闭时，下游查询和耗时任务应该停下，不要继续空转。</p>
+          <p><strong>Principle：</strong>用 <code>context.WithTimeout</code> 给子任务设置时间预算，耗时函数通过 <code>select</code> 监听 <code>ctx.Done()</code>。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -1120,7 +1179,7 @@ import (
 )
 
 func slowWork(ctx context.Context) error {
-	// 模拟一个耗时操作。
+	// 这个任务本来要 2 秒。
 	select {
 	case <-time.After(2 * time.Second):
 		return nil
@@ -1132,12 +1191,12 @@ func slowWork(ctx context.Context) error {
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /slow", func(w http.ResponseWriter, r *http.Request) {
-		// 给单个业务操作增加 500ms 预算。
+		// 只给 slowWork 500ms，超时就撤。
 		ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
 		defer cancel()
 
 		if err := slowWork(ctx); err != nil {
-			http.Error(w, "work canceled: "+err.Error(), http.StatusGatewayTimeout)
+			http.Error(w, "timeout: "+err.Error(), http.StatusGatewayTimeout)
 			return
 		}
 
@@ -1152,17 +1211,16 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 这个请求会因为内部 500ms 超时而返回 504
-curl -i http://localhost:8080/slow</code></pre>
+            <pre><code data-lang="shell">curl -i http://localhost:8080/slow</code></pre>
           </div>
         </section>
 
-        <section id="step12" data-search>
-          <p class="step-label">Step 12 · 新概念：http.Server 配置</p>
-          <h2>12. Server 配置</h2>
-          <p><strong>What：</strong><code>http.Server</code> 是可配置的服务端对象。</p>
-          <p><strong>Why：</strong>生产环境不应该直接裸用 <code>http.ListenAndServe</code>，因为你需要配置读写超时、空闲连接超时、路由器等。</p>
-          <p><strong>Principle：</strong><code>ListenAndServe</code> 是便捷函数；自定义 <code>http.Server</code> 能设置更多安全和稳定性参数。</p>
+        <section id="step13" data-search>
+          <p class="step-label">Step 13 · 新概念：http.Server 是正式店长</p>
+          <h2>13. http.Server：生产环境别裸奔</h2>
+          <p><strong>What：</strong><code>http.Server</code> 是可配置的 HTTP 服务对象。</p>
+          <p><strong>Why：</strong><code>http.ListenAndServe</code> 是快捷方式，适合练习。生产环境需要超时配置，否则慢客户端可能拖住连接。</p>
+          <p><strong>Principle：</strong>配置 <code>ReadHeaderTimeout</code>、<code>ReadTimeout</code>、<code>WriteTimeout</code>、<code>IdleTimeout</code>，给服务边界上护栏。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -1177,19 +1235,18 @@ import (
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "server configured")
+		fmt.Fprintln(w, "configured server")
 	})
 
 	server := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,
-		ReadHeaderTimeout: 2 * time.Second,  // 限制读取请求头时间。
-		ReadTimeout:       5 * time.Second,  // 限制读取整个请求时间。
-		WriteTimeout:      10 * time.Second, // 限制写响应时间。
-		IdleTimeout:       60 * time.Second, // 限制 keep-alive 空闲时间。
+		ReadHeaderTimeout: 2 * time.Second,  // 读请求头最多 2 秒。
+		ReadTimeout:       5 * time.Second,  // 读完整请求最多 5 秒。
+		WriteTimeout:      10 * time.Second, // 写响应最多 10 秒。
+		IdleTimeout:       60 * time.Second, // keep-alive 空闲最多 60 秒。
 	}
 
-	fmt.Println("server listening on http://localhost:8080")
 	if err := server.ListenAndServe(); err != nil {
 		panic(err)
 	}
@@ -1198,17 +1255,16 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 请求配置后的服务
-curl http://localhost:8080/hello</code></pre>
+            <pre><code data-lang="shell">curl http://localhost:8080/hello</code></pre>
           </div>
         </section>
 
-        <section id="step13" data-search>
-          <p class="step-label">Step 13 · 新概念：优雅关闭</p>
-          <h2>13. 优雅关闭</h2>
-          <p><strong>What：</strong>优雅关闭是在收到退出信号后，停止接收新请求，并等待正在处理的请求完成。</p>
-          <p><strong>Why：</strong>直接杀进程可能中断正在执行的请求，造成部分写入、连接错误或用户体验问题。</p>
-          <p><strong>Principle：</strong><code>server.Shutdown(ctx)</code> 会关闭监听器、停止接收新连接，并等待现有请求完成，直到 context 超时。</p>
+        <section id="step14" data-search>
+          <p class="step-label">Step 14 · 新概念：优雅关闭</p>
+          <h2>14. 优雅关闭：打烊也要等客人吃完</h2>
+          <p><strong>What：</strong>优雅关闭是在退出时停止接收新请求，并等待正在处理的请求完成。</p>
+          <p><strong>Why：</strong>直接杀进程可能让请求处理到一半，写了一半数据，或者数据库事务还没收尾。</p>
+          <p><strong>Principle：</strong><code>server.Shutdown(ctx)</code> 关闭监听器，等待已有连接结束，直到 <code>ctx</code> 超时。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -1237,20 +1293,19 @@ func main() {
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	// 在独立 goroutine 中启动服务，主 goroutine 用来监听退出信号。
 	go func() {
-		fmt.Println("server listening on http://localhost:8080")
+		fmt.Println("open: http://localhost:8080/hello")
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
 	}()
 
-	// 等待 Ctrl+C 或系统终止信号。
+	// 等 Ctrl+C 或容器终止信号。
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	// 给正在处理的请求最多 5 秒完成时间。
+	// 最多等 5 秒让旧请求收尾。
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -1263,22 +1318,19 @@ func main() {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 运行服务
-go run main.go
-
-# 请求接口
+            <pre><code data-lang="shell">go run main.go
 curl http://localhost:8080/hello
 
-# 在服务终端按 Ctrl+C，观察优雅关闭日志</code></pre>
+# 回到服务终端按 Ctrl+C</code></pre>
           </div>
         </section>
 
-        <section id="step14" data-search>
-          <p class="step-label">Step 14 · 新概念：httptest</p>
-          <h2>14. 测试 Handler</h2>
-          <p><strong>What：</strong><code>net/http/httptest</code> 用于在测试里构造请求和记录响应。</p>
-          <p><strong>Why：</strong>HTTP handler 是业务入口，必须能自动化测试，而不是每次手动 curl。</p>
-          <p><strong>Principle：</strong><code>httptest.NewRequest</code> 构造请求，<code>httptest.NewRecorder</code> 捕获响应。</p>
+        <section id="step15" data-search>
+          <p class="step-label">Step 15 · 新概念：httptest</p>
+          <h2>15. httptest：不用开端口也能测接口</h2>
+          <p><strong>What：</strong><code>net/http/httptest</code> 是标准库测试 HTTP handler 的工具。</p>
+          <p><strong>Why：</strong>每次手动 curl 太慢，也容易漏。自动测试能让你改代码时更放心。</p>
+          <p><strong>Principle：</strong><code>httptest.NewRequest</code> 造请求，<code>httptest.NewRecorder</code> 记录响应，然后直接调用 handler。</p>
 
           <div class="code-shell">
             <div class="code-head"><span>go · main.go</span><button class="copy-btn">复制</button></div>
@@ -1294,7 +1346,7 @@ type HealthResponse struct {
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	// 测试目标：返回 JSON 健康检查结果。
+	// 返回一个简单 JSON，用来测试。
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_ = json.NewEncoder(w).Encode(HealthResponse{Status: "ok"})
 }
@@ -1318,17 +1370,17 @@ import (
 )
 
 func TestHealthHandler(t *testing.T) {
-	// 构造一个 GET /health 请求。
+	// 造一个假的 HTTP 请求。
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 
-	// Recorder 用来捕获 handler 写出的响应。
+	// 造一个响应记录器，它会接住 handler 写出的内容。
 	rec := httptest.NewRecorder()
 
-	// 直接调用 handler，不需要真正启动端口。
+	// 直接调用 handler，不需要真的启动 8080 端口。
 	healthHandler(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", rec.Code)
+		t.Fatalf("want 200, got %d", rec.Code)
 	}
 
 	if !strings.Contains(rec.Body.String(), `"status":"ok"`) {
@@ -1339,123 +1391,123 @@ func TestHealthHandler(t *testing.T) {
 
           <div class="code-shell">
             <div class="code-head"><span>shell · 验证</span><button class="copy-btn">复制</button></div>
-            <pre><code data-lang="shell"># 运行测试
-go test ./...</code></pre>
+            <pre><code data-lang="shell">go test ./...</code></pre>
           </div>
         </section>
 
         <section id="mistakes" data-search>
-          <h2>常见错误</h2>
+          <h2>常见坑：小白最容易踩的地方</h2>
           <div class="cards">
             <div class="card">
-              <h3>裸用默认 mux</h3>
-              <p>小例子可以用 <code>http.HandleFunc</code>，真实项目更推荐显式创建 <code>http.NewServeMux()</code>，避免全局状态混乱。</p>
+              <h3>先写 body 再改状态码</h3>
+              <p>一旦写了 body，Go 就可能已经发送 <code>200 OK</code>。状态码和 Header 要先设置。</p>
             </div>
             <div class="card">
-              <h3>先写 body 后设 Header</h3>
-              <p>第一次写响应体会发送默认状态码和 Header。Header 应在写 body 或 <code>WriteHeader</code> 前设置。</p>
+              <h3>把 mux 当成可有可无</h3>
+              <p>demo 可以用默认 mux，项目里建议显式创建 <code>http.NewServeMux()</code>，结构更干净。</p>
             </div>
             <div class="card">
-              <h3>不限制请求体大小</h3>
-              <p>读取 JSON body 前使用 <code>http.MaxBytesReader</code>，否则恶意大请求可能占用大量内存或连接时间。</p>
+              <h3>读取 body 不限大小</h3>
+              <p>JSON body 前加 <code>http.MaxBytesReader</code>。这是服务端的饭量控制，不然容易被大请求撑住。</p>
             </div>
             <div class="card">
-              <h3>没有 Server 超时</h3>
-              <p>生产环境应配置 <code>ReadHeaderTimeout</code>、<code>ReadTimeout</code>、<code>WriteTimeout</code> 和 <code>IdleTimeout</code>。</p>
+              <h3>忽略 r.Context()</h3>
+              <p>数据库、RPC、慢任务都应该接收请求 context，不要让用户走了任务还在后面忙活。</p>
             </div>
             <div class="card">
-              <h3>忽略 Request.Context</h3>
-              <p>数据库、RPC、耗时函数都应接收并传递 <code>r.Context()</code>，让取消和超时能向下游传播。</p>
+              <h3>生产不配 timeout</h3>
+              <p>裸 <code>ListenAndServe</code> 适合学习。生产要用 <code>http.Server</code> 配超时。</p>
             </div>
             <div class="card">
-              <h3>缺少自动化测试</h3>
-              <p>handler 可以用 <code>httptest</code> 快速测试，不需要真正启动端口，反馈更快也更稳定。</p>
+              <h3>只会 curl，不会测试</h3>
+              <p><code>httptest</code> 能让 handler 测试又快又稳。手动 curl 是验收，不是测试体系。</p>
             </div>
           </div>
         </section>
 
         <section id="practice" data-search>
-          <h2>Practice：练习题</h2>
+          <h2>练习项目：写一个迷你 Todo API</h2>
+          <p>不要只看，敲一遍才算真的把知识装进手里。下面的练习按刚才的顺序叠加，别一口吃成项目经理，慢慢来。</p>
           <div class="cards">
             <div class="exercise">
-              <h3>1. Todo 列表</h3>
-              <p>实现 <code>GET /todos</code> 返回 JSON 数组，只用内存 slice 保存数据。</p>
+              <h3>1. GET /todos</h3>
+              <p>返回内存里的 Todo 列表，响应格式是 JSON 数组。</p>
             </div>
             <div class="exercise">
-              <h3>2. 创建 Todo</h3>
-              <p>实现 <code>POST /todos</code>，读取 JSON body，校验 title 必填，返回 201。</p>
+              <h3>2. POST /todos</h3>
+              <p>读取 JSON body，校验 <code>title</code> 必填，创建成功返回 <code>201</code>。</p>
             </div>
             <div class="exercise">
-              <h3>3. 查询 Todo</h3>
-              <p>实现 <code>GET /todos/{id}</code>，使用 <code>PathValue</code> 读取 id，不存在返回 404。</p>
+              <h3>3. GET /todos/{id}</h3>
+              <p>用 <code>PathValue</code> 读取 id，不存在返回 <code>404</code>。</p>
             </div>
             <div class="exercise">
-              <h3>4. 日志中间件</h3>
-              <p>输出方法、路径、耗时，并给每个请求附加一个 request id。</p>
+              <h3>4. 加日志中间件</h3>
+              <p>记录 method、path、cost，再给每个请求加一个 request id。</p>
             </div>
             <div class="exercise">
-              <h3>5. 超时保护</h3>
-              <p>写一个 <code>/slow</code> 接口，内部任务 2 秒，但 handler 只给它 300ms 预算。</p>
+              <h3>5. 加超时</h3>
+              <p>给慢任务 300ms 预算，超过就返回 <code>504</code>。</p>
             </div>
             <div class="exercise">
-              <h3>6. Handler 测试</h3>
-              <p>用 <code>httptest</code> 测试 Todo 的创建接口，断言状态码和 JSON body。</p>
+              <h3>6. 写测试</h3>
+              <p>用 <code>httptest</code> 测试创建 Todo 的状态码、Header 和响应体。</p>
             </div>
           </div>
         </section>
 
         <section id="interview" data-search>
-          <h2>Interview Questions：面试题</h2>
+          <h2>面试题：用人话回答，也能显得很专业</h2>
 
           <details open>
-            <summary>1. http.Handler 和 http.HandlerFunc 有什么区别？</summary>
+            <summary>1. http.Handler 和 http.HandlerFunc 是什么关系？</summary>
             <div>
-              <p><code>http.Handler</code> 是接口，要求实现 <code>ServeHTTP</code>。<code>http.HandlerFunc</code> 是函数类型，并实现了 <code>ServeHTTP</code>，所以普通函数可以被适配成 handler。</p>
+              <p><strong>答：</strong><code>http.Handler</code> 是接口，要求实现 <code>ServeHTTP</code>。<code>http.HandlerFunc</code> 是函数类型，它自己实现了 <code>ServeHTTP</code>，所以普通函数可以被适配成 handler。简单说：接口是岗位要求，HandlerFunc 是符合要求的临时工。</p>
             </div>
           </details>
 
           <details>
-            <summary>2. 为什么生产环境不建议只用 http.ListenAndServe？</summary>
+            <summary>2. ResponseWriter 和 Request 分别干什么？</summary>
             <div>
-              <p>便捷函数无法配置完整的超时策略。生产环境应使用 <code>http.Server</code>，配置 <code>ReadHeaderTimeout</code>、<code>ReadTimeout</code>、<code>WriteTimeout</code>、<code>IdleTimeout</code>，并实现优雅关闭。</p>
+              <p><strong>答：</strong><code>*http.Request</code> 是输入，保存方法、URL、Header、Body、Context。<code>http.ResponseWriter</code> 是输出，用来写状态码、Header 和响应体。</p>
             </div>
           </details>
 
           <details>
-            <summary>3. WriteHeader 和 Write 的顺序有什么讲究？</summary>
+            <summary>3. 为什么 Header 要在 WriteHeader 或 Write 前设置？</summary>
             <div>
-              <p>Header 应先设置。<code>WriteHeader</code> 会发送状态码；如果先调用 <code>Write</code>，Go 会隐式发送 <code>200 OK</code>，之后再改状态码就无效了。</p>
+              <p><strong>答：</strong>因为响应一旦开始发送，Header 和状态码就基本定了。先 <code>Write</code> 会隐式发送 <code>200 OK</code>，后面再改状态码就晚了。</p>
             </div>
           </details>
 
           <details>
-            <summary>4. Request.Context 在 HTTP 服务里有什么用？</summary>
+            <summary>4. 为什么生产环境要用 http.Server？</summary>
             <div>
-              <p>它表示请求生命周期。客户端断开、服务关闭或上游取消时，context 会被取消。下游数据库、RPC 和耗时函数应该接收它，以便及时停止无意义工作。</p>
+              <p><strong>答：</strong><code>http.Server</code> 能配置超时、Handler、优雅关闭等生产参数。裸 <code>ListenAndServe</code> 是快捷方式，适合学习和 demo，不适合严肃服务。</p>
             </div>
           </details>
 
           <details>
             <summary>5. 中间件的本质是什么？</summary>
             <div>
-              <p>中间件是对 <code>http.Handler</code> 的包装函数，典型签名是 <code>func(http.Handler) http.Handler</code>。它通过调用 <code>next.ServeHTTP</code> 把请求传给下一个 handler。</p>
+              <p><strong>答：</strong>中间件是 <code>func(http.Handler) http.Handler</code>，它接收一个 handler，返回一个增强后的 handler。核心就是在 <code>next.ServeHTTP</code> 前后做通用逻辑。</p>
             </div>
           </details>
 
           <details>
-            <summary>6. 如何测试 HTTP handler？</summary>
+            <summary>6. Request.Context 有什么用？</summary>
             <div>
-              <p>使用 <code>net/http/httptest</code>。<code>httptest.NewRequest</code> 构造请求，<code>httptest.NewRecorder</code> 捕获响应，然后直接调用 handler 并断言状态码、Header 和 body。</p>
+              <p><strong>答：</strong>它表示请求生命周期。客户端断开、请求超时、服务关闭时，context 会取消。下游数据库查询、RPC、耗时任务应该接收它，及时停止无意义工作。</p>
             </div>
           </details>
         </section>
 
         <section id="summary" data-search>
-          <h2>总结</h2>
-          <p>这套螺旋式路径可以压缩为一条成长线：先会启动服务，再会分发请求，然后会读输入、写输出，接着用 handler 和 middleware 管理结构，最后补上 context、server timeout、优雅关闭和测试。</p>
-          <div class="callout">
-            <h3>最终口诀</h3>
-            <p><strong>Handler 是入口，Request 是输入，ResponseWriter 是输出，ServeMux 是分发，Server 是生产边界，Context 是生命周期。</strong></p>
+          <h2>总结：把 net/http 放进脑子里的正确姿势</h2>
+          <p>从今天开始，看到 Go HTTP 服务，你就按这条线理解：<code>Server</code> 开门，<code>ServeMux</code> 分流，<code>Handler</code> 干活，<code>Request</code> 是输入，<code>ResponseWriter</code> 是输出，<code>Context</code> 管生命周期，<code>httptest</code> 保证你改代码不心慌。</p>
+          <div class="callout teacher">
+            <h3>最后一句口诀</h3>
+            <p><strong>路径决定找谁，方法决定干啥，Request 带来问题，ResponseWriter 交回答，Context 负责喊停，Server 负责稳住全场。</strong></p>
           </div>
           <h3>官方参考</h3>
           <ul>
@@ -1466,10 +1518,10 @@ go test ./...</code></pre>
         </section>
       </article>
 
-      <p class="no-results" id="noResults">没有找到匹配章节。试试搜索 “JSON”、“Context”、“Shutdown” 或 “httptest”。</p>
+      <p class="no-results" id="noResults">没有找到匹配章节。试试搜索 “JSON”、“Context”、“中间件” 或 “httptest”。</p>
 
       <footer>
-        <p>本教程为单文件离线 HTML，按 go-master skill 的深色主题与教学结构生成。建议按步骤复制代码运行，不要跳过 curl 验证。</p>
+        <p>本教程为单文件离线 HTML，按 go-master skill 的深色主题与教学结构重构。建议按步骤复制代码运行，边跑边理解。</p>
       </footer>
     </main>
   </div>
